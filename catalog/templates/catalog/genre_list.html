@@ -11,6 +11,7 @@
             <div class="card-body">
                 <h5 class="card-title">{{ genre.name }}</h5>
                 <p class="card-text">
+                    Артистов: {{ genre.artist_count|default:"0" }}<br>
                     Треков: {{ genre.track_count|default:"0" }}
                 </p>
                 <a href="{% url 'catalog:genre_detail' genre.id %}" class="btn btn-primary btn-sm">

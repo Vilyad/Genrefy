@@ -3,7 +3,8 @@
 {% block content %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}"></a></li>
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}">Все жанры</a></li>
+        <li class="breadcrumb-item activate">{{ genre.name }}</li>
     </ol>
 </nav>
 
@@ -20,6 +21,7 @@
         <ul class="list-group">
             {% for artist in artists|slice:":5" %}
             <li class="list-group-item">{{ artist.name }}</li>
+            {% endfor %}
         </ul>
         {% else %}
         <p class="text-muted">Артисты не добавлены</p>
