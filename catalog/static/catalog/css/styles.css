@@ -32,3 +32,17 @@ h1 {
     background-color: #5a67d8;
     border-color: #5a67d8;
 }
+
+.navbar-brand {
+    font-size: 1.5rem;
+    color: #667eea !important;
+}
+
+.nav-link {
+    color: #4a5568 !important;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: #667eea;
+}
