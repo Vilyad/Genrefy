@@ -1,0 +1,49 @@
+{% extends 'catalog/base.html' %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}"></a></li>
+    </ol>
+</nav>
+
+<h2>{{ genre.name }}</h2>
+
+{% if genre.description %}
+<p>{{ genre.description }}</p>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <h5>Артисты</h5>
+        {% if artists %}
+        <ul class="list-group">
+            {% for artist in artists|slice:":5" %}
+            <li class="list-group-item">{{ artist.name }}</li>
+        </ul>
+        {% else %}
+        <p class="text-muted">Артисты не добавлены</p>
+        {% endif %}
+    </div>
+
+    <div class="col-md-6">
+        <h5>Треки</h5>
+        {% if tracks %}
+        <ul class="list-group">
+            {% for track in tracks|slice:":5" %}
+            <li class="list-group-item">
+                {{ track.title }}
+                <small class="text-muted">- {{ track.artist.name }}</small>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Треки не добавлены</p>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{% url 'catalog:genre_list' %}" class="btn btn-secondary mt-4">
+    ← Назад к списку
+</a>
+{% endblock %}
