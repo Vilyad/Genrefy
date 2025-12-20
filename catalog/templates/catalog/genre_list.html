@@ -1,0 +1,29 @@
+{% extends 'catalog/base.html' %}
+
+{% block content %}
+<h2>Каталог музыкальных жанров</h2>
+
+{% if genres %}
+<div class="row">
+    {% for genre in genres %}
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ genre.name }}</h5>
+                <p class="card-text">
+                    Треков: {{ genre.track_count|default:"0" }}
+                </p>
+                <a href="{% url 'catalog:genre_detail' genre.id %}" class="btn btn-primary btn-sm">
+                    Подробнее
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    Жанров пока нет
+</div>
+{% endif %}
+{% endblock %}
