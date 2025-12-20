@@ -23,3 +23,7 @@ db.sqlite3-journal
 # Статика (собранная)
 static/
 media/
+
+.env
+.env.local
+.env.*.local
