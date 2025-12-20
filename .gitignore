@@ -21,7 +21,7 @@ db.sqlite3-journal
 .DS_Store
 
 # Статика (собранная)
-static/
+staticfiles/
 media/
 
 .env
