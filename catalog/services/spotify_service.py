@@ -156,6 +156,26 @@ class SpotifyService:
 
         return self._make_api_request("search", params=params)
 
+    def search(self, query: str, types: List[str] = None, limit: int = 10, market: Optional[str] = None) -> Optional[Dict]:
+        if types is None:
+            types = ["track"]
+
+        valid_types = {"track", "artist", "album", "playlist"}
+        types = [t for t in types if t in valid_types]
+
+        if not types:
+            logger.warning(f"No valid types provided, using default 'track'")
+            types = ["track"]
+
+        params = {
+            "q": query,
+            "type": ",".join(types),
+            "limit": limit,
+            "market": market or self.default_market
+        }
+
+        return self._make_api_request("search", params=params)
+
     def get_track(self, track_id: str) -> Optional[Dict]:
         return self._make_api_request(f"tracks/{track_id}")
 
