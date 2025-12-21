@@ -7,6 +7,10 @@ __pycache__/
 venv/
 env/
 .venv/
+ENV/
+.env
+.env.local
+.env.*.local
 
 # Django
 *.log
@@ -18,12 +22,16 @@ db.sqlite3-journal
 .idea/
 .vscode/
 *.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
 
 # Статика (собранная)
 staticfiles/
 media/
 
-.env
-.env.local
-.env.*.local
+# Файлы фикстур
+*.json
+!catalog/fixtures/demo.json
