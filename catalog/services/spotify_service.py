@@ -96,15 +96,15 @@ class SpotifyService:
                     return None
 
             except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 401:
+                if hasattr(e, 'response') and e.response and e.response.status_code == 401:
                     logger.info("Token expired, refreshing...")
                     self._access_token = None
                     token = self.get_access_token()
                     if token:
                         headers["Authorization"] = f"Bearer {token}"
                         continue
-                    logger.error(f"HTTP error {e.response.status_code}: {e}")
-                    return None
+                logger.error(f"HTTP error: {e}")
+                return None
 
             except requests.exceptions.RequestException as e:
                 logger.error(f"API request failed: {e}, URL: {url}")
@@ -189,23 +189,52 @@ class SpotifyService:
         return self._make_api_request(f"albums/{album_id}")
 
     def extract_track_id_from_url(self, url: str) -> Optional[str]:
-        if len(url) == 22 and url.isalnum():
-            return url
+        if not url:
+            logger.warning(f"Empty URL provided")
+            return None
 
-        parsed_url = urlparse(url)
+        url = str(url).strip()
+
+        if url.isalnum() and 5 <= len(url) <= 30:
+            if not url.isdigit():
+                return url
+
+        if '&' in url and 'open.spotify.com/track/' in url:
+            url = url.split('&')[0]
 
         if url.startswith("spotify:track:"):
-            return url.split("spotify:track:")[-1].split("?")[0]
+            track_id = url.split("spotify:track:")[-1]
+            return track_id.split("?")[0].split("#")[0]
 
-        if "open.spotify.com/track/" in url:
-            path_parts = parsed_url.path.split("/")
-            if len(path_parts) >= 3:
-                track_id = path_parts[2]
-                return track_id.split("?")[0]
+        if not url.startswith(('http://', 'https://', 'spotify:')):
+            url = 'https://' + url
 
-        query_params = parse_qs(parsed_url.query)
-        if 'track' in query_params:
-            return query_params['track'][0]
+        try:
+            parsed_url = urlparse(url)
+
+            netloc = parsed_url.netloc.lower()
+            if not ('open.spotify.com' in netloc or 'spotify.com' in netloc):
+                logger.warning(f"Not a Spotify domain: {netloc}")
+                return None
+
+            if parsed_url.path and '/track/' in parsed_url.path:
+                path_parts = parsed_url.path.split('/')
+                for i, part in enumerate(path_parts):
+                    if part == 'track' and i + 1 < len(path_parts):
+                        track_id = path_parts[i + 1]
+                        clean_id = track_id.split("?")[0].split("#")[0]
+                        if clean_id and clean_id.isalnum():
+                            return clean_id
+
+            query_params = parse_qs(parsed_url.query)
+            if 'track' in query_params:
+                track_id = query_params['track'][0]
+                clean_id = track_id.split("?")[0].split("#")[0]
+                if clean_id and clean_id.isalnum():
+                    return clean_id
+
+        except Exception as e:
+            logger.warning(f"Error parsing URL {url}: {e}")
 
         logger.warning(f"Could not extract track ID from URL: {url}")
         return None
