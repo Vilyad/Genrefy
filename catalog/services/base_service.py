@@ -1,10 +1,10 @@
+import hashlib
 import json
 import os
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
-import hashlib
 import time
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Optional
 
 
 class BaseAPIService:
@@ -13,7 +13,7 @@ class BaseAPIService:
         os.makedirs(cache_dir, exist_ok=True)
 
     def _get_cache_key(self, method: str, params: dict) -> str:
-        key_str = f"{method}:{json.dump(params, sort_keys=True)}"
+        key_str = f"{method}:{json.dumps(params, sort_keys=True)}"
         return hashlib.md5(key_str.encode()).hexdigest()
 
     def _load_from_cache(self, key: str, ttl_days: int = 7) -> Optional[Dict]:
@@ -39,6 +39,8 @@ class BaseAPIService:
         time_since_last = current_time - last_request_time
 
         if time_since_last < min_interval:
-            time.sleep(min_interval - time_since_last)
-
-        return time.time()
+            wait_time = min_interval - time_since_last
+            time.sleep(wait_time)
+            return time.time()
+        else:
+            return current_time
