@@ -1,37 +1,51 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual Environment
-venv/
-env/
-.venv/
-ENV/
-.env
-.env.local
-.env.*.local
-
-# Django
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# IDE
-.idea/
+venv/
+env/
+.venv/
+env.bak/
+venv.bak/
+
 .vscode/
+.idea/
 *.swp
 *.swo
-
-# OS
+*~
 .DS_Store
-Thumbs.db
 
-# Статика (собранная)
-staticfiles/
+.env
+.env.local
+.env.*.local
+
 media/
+staticfiles/
 
-# Файлы фикстур
 *.json
 !catalog/fixtures/demo.json
+
+.cache/
+.cache_test/
