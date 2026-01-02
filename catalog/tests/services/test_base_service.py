@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
+from catalog.services.base_service import BaseAPIService
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 if not settings.configured:
@@ -34,8 +36,6 @@ if not settings.configured:
     )
     django.setup()
 
-from catalog.services.base_service import BaseAPIService
-
 
 class TestBaseAPIService(unittest.TestCase):
     """Тесты для BaseAPIService."""
@@ -54,7 +54,7 @@ class TestBaseAPIService(unittest.TestCase):
     def test_init_creates_cache_dir(self):
         """Тест: создание директории кэша при инициализации."""
         cache_dir = os.path.join(self.temp_dir, 'test_cache')
-        service = BaseAPIService(cache_dir=cache_dir)
+        BaseAPIService(cache_dir=cache_dir)
 
         self.assertTrue(os.path.exists(cache_dir))
 

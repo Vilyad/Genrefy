@@ -9,6 +9,8 @@ import django
 from django.conf import settings
 from unittest.mock import patch, Mock
 
+from catalog.services.lastfm_service import LastFMService
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 if not settings.configured:
@@ -30,8 +32,6 @@ if not settings.configured:
         USE_TZ=True,
     )
     django.setup()
-
-from catalog.services.lastfm_service import LastFMService
 
 
 class TestLastFMService(unittest.TestCase):
