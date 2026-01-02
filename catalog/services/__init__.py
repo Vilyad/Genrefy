@@ -1,7 +1,12 @@
-from .spotify_service import spotify_service
-from .track_service import TrackService
+from .lastfm_service import LastFMService
+from .visualization import VisualizationService
+
+lastfm_service = LastFMService()
+visualization_service = VisualizationService()
 
 __all__ = [
-    'spotify_service',
-    'TrackService',
+    'LastFMService',
+    'VisualizationService',
+    'lastfm_service',
+    'visualization_service'
 ]
