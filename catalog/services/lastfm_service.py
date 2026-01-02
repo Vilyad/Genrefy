@@ -267,14 +267,20 @@ class LastFMService(BaseAPIService):
     def _parse_track_search_result(self, track_data: Dict) -> Optional[Dict]:
         """Парсинг результата поиска трека."""
         try:
+            name = track_data.get('name')
+            artist = track_data.get('artist')
+
+            if not name or not artist:
+                return None
+
             return {
-                'name': track_data.get('name', ''),
-                'artist': track_data.get('artist', ''),
+                'name': name,
+                'artist': artist,
                 'url': track_data.get('url', ''),
                 'listeners': int(track_data.get('listeners', 0)),
                 'image': self._get_image_url(track_data.get('image', [])),
             }
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, TypeError):
             return None
 
     def _parse_artist_search_result(self, artist_data: Dict) -> Optional[Dict]:
