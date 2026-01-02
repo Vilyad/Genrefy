@@ -1,113 +1,174 @@
-from django.core.management.base import BaseCommand
-from django.core.management import call_command
-import os
+"""
+Команда для загрузки демо-данных.
+"""
 import json
+from django.core.management.base import BaseCommand
+from catalog.models import Genre, Artist, Track
+from catalog.services import LastFMService
+
 
 class Command(BaseCommand):
-    help = 'Загрузка демо данных из фикстур'
+    """Команда для загрузки демо-данных."""
 
-    def handle(self, *args, **kwargs):
-        self.stdout.write("Загрузка демо-данных...")
+    help = 'Загружает демо-данные для тестирования приложения'
 
-        fixture_path = 'catalog/fixtures/demo.json'
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='Очистить существующие данные перед загрузкой'
+        )
+        parser.add_argument(
+            '--count',
+            type=int,
+            default=10,
+            help='Количество треков для загрузки (по умолчанию: 10)'
+        )
 
-        if not os.path.exists(fixture_path):
-            self.stdout.write(self.style.ERROR(f'Файл {fixture_path} не найден!'))
-            self.stdout.write(self.style.WARNING('Создаем базовые данные...'))
-            self.create_basic_data()
-            return
+    def handle(self, *args, **options):
+        clear_data = options['clear']
+        track_count = options['count']
 
-        try:
-            call_command('loaddata', 'demo.json', app_label='catalog')
-            self.stdout.write(self.style.SUCCESS('Демо-данные успешно загружены!'))
+        if clear_data:
+            self.stdout.write("Очистка существующих данных...")
+            Track.objects.all().delete()
+            Artist.objects.all().delete()
+            Genre.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS("Данные очищены"))
 
-            from catalog.models import Genre, Artist, Track
-            self.stdout.write(f"Загружено:")
-            self.stdout.write(f"    - Жанров: {Genre.objects.count()}")
-            self.stdout.write(f"    - Артистов: {Artist.objects.count()}")
-            self.stdout.write(f"    - Треков: {Track.objects.count()}")
+        self.stdout.write(f"Загрузка демо-данных ({track_count} треков)...")
 
-        except UnicodeDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка кодировки файла: {str(e)}'))
-            self.stdout.write(self.style.WARNING('Пробуем исправить кодировку...'))
-            self.fix_encoding_and_load()
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка загрузки: {str(e)}'))
-            self.stdout.write(self.style.WARNING('Создаем базовые данные...'))
-            self.create_basic_data()
+        genres_data = [
+            {'name': 'Rock', 'lastfm_tag': 'rock', 'description': 'Рок-музыка'},
+            {'name': 'Pop', 'lastfm_tag': 'pop', 'description': 'Популярная музыка'},
+            {'name': 'Hip Hop', 'lastfm_tag': 'hip hop', 'description': 'Хип-хоп и рэп'},
+            {'name': 'Electronic', 'lastfm_tag': 'electronic', 'description': 'Электронная музыка'},
+            {'name': 'Jazz', 'lastfm_tag': 'jazz', 'description': 'Джазовая музыка'},
+            {'name': 'Classical', 'lastfm_tag': 'classical', 'description': 'Классическая музыка'},
+            {'name': 'Alternative', 'lastfm_tag': 'alternative', 'description': 'Альтернативная музыка'},
+            {'name': 'Indie', 'lastfm_tag': 'indie', 'description': 'Инди-музыка'},
+        ]
 
-    def fix_encoding_and_load(self):
-        try:
-            fixture_path = 'catalog/fixtures/demo.json'
+        genres = {}
+        for genre_data in genres_data:
+            genre, created = Genre.objects.get_or_create(
+                name=genre_data['name'],
+                defaults=genre_data
+            )
+            genres[genre.name.lower()] = genre
+            if created:
+                self.stdout.write(f"Создан жанр: {genre.name}")
 
-            with open(fixture_path, 'rb') as f:
-                content_bytes = f.read()
+        popular_tracks = [
+            {'artist': 'Queen', 'track': 'Bohemian Rhapsody'},
+            {'artist': 'The Beatles', 'track': 'Yesterday'},
+            {'artist': 'Led Zeppelin', 'track': 'Stairway to Heaven'},
+            {'artist': 'Michael Jackson', 'track': 'Billie Jean'},
+            {'artist': 'Madonna', 'track': 'Like a Prayer'},
+            {'artist': 'Nirvana', 'track': 'Smells Like Teen Spirit'},
+            {'artist': 'Radiohead', 'track': 'Creep'},
+            {'artist': 'Coldplay', 'track': 'Yellow'},
+            {'artist': 'Adele', 'track': 'Hello'},
+            {'artist': 'Ed Sheeran', 'track': 'Shape of You'},
+            {'artist': 'Daft Punk', 'track': 'Around the World'},
+            {'artist': 'Kraftwerk', 'track': 'The Model'},
+            {'artist': 'OutKast', 'track': 'Hey Ya!'},
+            {'artist': 'Eminem', 'track': 'Lose Yourself'},
+            {'artist': 'Miles Davis', 'track': 'So What'},
+            {'artist': 'John Coltrane', 'track': 'Giant Steps'},
+        ]
 
-            encodings = ['utf-8-sig', 'cp1251', 'latin-1', 'utf-16']
-            decoded_content = None
+        tracks_to_load = popular_tracks[:track_count]
 
-            for encoding in encodings:
-                try:
-                    decoded_content = content_bytes.decode(encoding)
-                    self.stdout.write(f'успешно декодировано как {encoding}')
-                    break
-                except UnicodeDecodeError:
+        lastfm_service = LastFMService()
+
+        for i, demo_track in enumerate(tracks_to_load, 1):
+            try:
+                self.stdout.write(
+                    f"[{i}/{len(tracks_to_load)}] Поиск: {demo_track['artist']} - {demo_track['track']}")
+
+                track_info = lastfm_service.get_track_info(
+                    artist=demo_track['artist'],
+                    track=demo_track['track']
+                )
+
+                if not track_info:
+                    self.stdout.write(self.style.WARNING(f"⚠Не найден: {demo_track['track']}"))
                     continue
 
-            if decoded_content:
-                with open(fixture_path, 'w', encoding='utf-8') as f:
-                    f.write(decoded_content)
+                artist_obj, artist_created = Artist.objects.get_or_create(
+                    name=track_info['artist'],
+                    defaults={
+                        'lastfm_url': track_info.get('url', ''),
+                        'lastfm_listeners': track_info.get('listeners', 0),
+                        'lastfm_playcount': track_info.get('playcount', 0),
+                        'image_url': track_info.get('image', ''),
+                        'description': f'Демо-артист: {track_info["artist"]}'
+                    }
+                )
 
-                from django.core.management import call_command
-                call_command('loaddata', 'demo.json', app_label='catalog')
-                self.stdout.write(self.style.SUCCESS('Данные загружены после исправления кодировки!'))
-            else:
-                raise Exception("Не удалось определить кодировку файла")
+                if not artist_created:
+                    artist_obj.lastfm_listeners = track_info.get('listeners', 0)
+                    artist_obj.lastfm_playcount = track_info.get('playcount', 0)
+                    if track_info.get('image'):
+                        artist_obj.image_url = track_info['image']
+                    artist_obj.save()
 
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Не удалось исправить кодировку: {str(e)}'))
-            self.create_basic_data()
+                track_obj, track_created = Track.objects.get_or_create(
+                    title=track_info['name'],
+                    artist=artist_obj,
+                    defaults={
+                        'lastfm_url': track_info.get('url', ''),
+                        'lastfm_listeners': track_info.get('listeners', 0),
+                        'lastfm_playcount': track_info.get('playcount', 0),
+                        'duration': track_info.get('duration'),
+                        'album': track_info.get('album', ''),
+                        'tags': track_info.get('tags', []),
+                        'image_url': track_info.get('image', ''),
+                        'is_reference': True,
+                    }
+                )
 
-    def create_basic_data(self):
-        from catalog.models import Genre, Artist, Track
+                track_obj.set_lastfm_data(track_info)
 
-        Track.objects.all().delete()
-        Artist.objects.all().delete()
-        Genre.objects.all().delete()
+                if track_created and track_info.get('tags'):
+                    track_obj.link_genres_from_tags()
 
-        electronic = Genre.objects.create(name="Electronic", description="Электронная музыка")
-        rock = Genre.objects.create(name="Rock", description="Рок-музыка")
-        hiphop = Genre.objects.create(name="Hip Hop", description="Хип-хоп и рэп")
-        pop = Genre.objects.create(name="Pop", description="Поп-музыка")
-        jazz = Genre.objects.create(name="Jazz", description="Джаз")
+                if track_created:
+                    self.stdout.write(self.style.SUCCESS(
+                        f"Добавлен: {track_obj.title} - {artist_obj.name}"
+                    ))
+                else:
+                    self.stdout.write(self.style.NOTICE(
+                        f"Уже существует: {track_obj.title}"
+                    ))
 
-        daft_punk = Artist.objects.create(name="Daft Punk", spotify_id="demo_1")
-        daft_punk.genres.add(electronic)
+                import time
+                time.sleep(0.3)
 
-        beatles = Artist.objects.create(name="The Beatles", spotify_id="demo_2")
-        beatles.genres.add(rock)
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(
+                    f"Ошибка при добавлении {demo_track['track']}: {str(e)}"
+                ))
 
-        kendrick = Artist.objects.create(name="Kendrick Lamar", spotify_id="demo_3")
-        kendrick.genres.add(hiphop)
+        self.stdout.write("Обновление статистики жанров...")
+        for genre in Genre.objects.all():
+            genre.track_count = Track.objects.filter(
+                tags_json__icontains=genre.name.lower()
+            ).count()
+            genre.is_popular = genre.track_count > 5
+            genre.save()
 
-        taylor = Artist.objects.create(name="Taylor Swift", spotify_id="demo_4")
-        taylor.genres.add(pop)
+        self.stdout.write(self.style.SUCCESS("Демо-данные успешно загружены!"))
 
-        miles = Artist.objects.create(name="Miles Davis", spotify_id="demo_5")
-        miles.genres.add(jazz)
+        self.stdout.write("\nСтатистика:")
+        self.stdout.write(f"  Жанров: {Genre.objects.count()}")
+        self.stdout.write(f"  Артистов: {Artist.objects.count()}")
+        self.stdout.write(f"  Треков: {Track.objects.count()}")
 
-        Track.objects.create(
-            title="Get Lucky",
-            artist=daft_punk,
-            spotify_id="demo_track_1",
-            audio_features={"danceability": 0.7, "energy": 0.8, "valence": 0.9},
-        )
-
-        Track.objects.create(
-            title="Hey Jude",
-            artist=beatles,
-            spotify_id="demo_track_2",
-            audio_features={"danceability": 0.5, "energy": 0.4, "valence": 0.6},
-        )
-
-        self.stdout.write(self.style.SUCCESS('Базовые демо-данные созданы!'))
+        self.stdout.write("\n🏆 Топ 5 треков по прослушиваниям:")
+        for track in Track.objects.order_by('-lastfm_playcount')[:5]:
+            self.stdout.write(
+                f"  • {track.title} - {track.artist.name} "
+                f"({track.lastfm_playcount:,} прослушиваний)"
+            )
