@@ -1,7 +1,14 @@
-import plotly.graph_objects as go
-import plotly.express as px
+"""
+Сервис для визуализации данных.
+"""
+import logging
+from typing import Dict, List
+
 import pandas as pd
-from typing import Dict, List, Any
+import plotly.express as px
+import plotly.graph_objects as go
+
+logger = logging.getLogger(__name__)
 
 
 class VisualizationService:
@@ -16,32 +23,42 @@ class VisualizationService:
             genres_data: Список жанров с данными о популярности
 
         Returns:
-            HTML код графика
+            HTML код графика или пустую строку при ошибке
         """
-        if not genres_data:
+        try:
+            if not genres_data:
+                return ""
+
+            valid_data = [item for item in genres_data
+                          if isinstance(item, dict) and 'name' in item and 'count' in item]
+
+            if not valid_data:
+                return ""
+
+            df = pd.DataFrame(valid_data)
+            df = df.sort_values('count', ascending=False).head(15)
+
+            fig = px.bar(
+                df,
+                x='name',
+                y='count',
+                title='Топ 15 музыкальных жанров по популярности',
+                labels={'name': 'Жанр', 'count': 'Количество треков'},
+                color='count',
+                color_continuous_scale='Viridis'
+            )
+
+            fig.update_layout(
+                xaxis_tickangle=-45,
+                plot_bgcolor='white',
+                showlegend=False
+            )
+
+            return fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+        except Exception as e:
+            logger.error(f"Error creating genre popularity chart: {e}")
             return ""
-        
-        df = pd.DataFrame(genres_data)
-        
-        df = df.sort_values('count', ascending=False).head(15)
-        
-        fig = px.bar(
-            df,
-            x='name',
-            y='count',
-            title='Топ-15 музыкальных жанров по популярности',
-            labels={'name': 'Жанр', 'count': 'Количество треков'},
-            color='count',
-            color_continuous_scale='Viridis'
-        )
-        
-        fig.update_layout(
-            xaxis_tickangle=-45,
-            plot_bgcolor='white',
-            showlegend=False
-        )
-        
-        return fig.to_html(full_html=False, include_plotlyjs='cdn')
     
     @staticmethod
     def create_artist_comparison_chart(artists_data: List[Dict]) -> str:
@@ -64,7 +81,7 @@ class VisualizationService:
             df,
             x='name',
             y='listeners',
-            title='Топ-10 артистов по количеству слушателей',
+            title='Топ 10 артистов по количеству слушателей',
             labels={'name': 'Артист', 'listeners': 'Слушатели'},
             color='listeners',
             color_continuous_scale='Plasma'
@@ -139,7 +156,7 @@ class VisualizationService:
             df,
             values='count',
             names='name',
-            title='Распределение топ-10 жанров',
+            title='Распределение топ 10 жанров',
             hole=0.3
         )
 
@@ -188,4 +205,3 @@ class VisualizationService:
         )
 
         return fig.to_html(full_html=False, include_plotlyjs='cdn')
-    
