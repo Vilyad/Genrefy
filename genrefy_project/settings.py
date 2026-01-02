@@ -26,6 +26,14 @@ ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.s
 LASTFM_API_KEY = os.getenv('LASTFM_API_KEY', '')
 LASTFM_SHARED_SECRET = os.getenv('LASTFM_SHARED_SECRET', '')
 
+if not LASTFM_API_KEY or not LASTFM_SHARED_SECRET:
+    print("=" * 60)
+    print("ВНИМАНИЕ: Last.fm API ключи не настроены!")
+    print("Получите API ключи на: https://www.last.fm/api/account/create")
+    print("Добавьте в .env файл:")
+    print("LASTFM_API_KEY=ваш_api_ключ")
+    print("LASTFM_SHARED_SECRET=ваш_shared_secret")
+    print("=" * 60)
 
 CACHE_TTL_DAYS = int(os.getenv('CACHE_TTL_DAYS', '7'))
 CACHE_DIR = os.getenv('CACHE_DIR', os.path.join(BASE_DIR, '.cache'))

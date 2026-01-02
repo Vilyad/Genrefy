@@ -34,7 +34,7 @@ class BaseAPIService:
         with open(cache_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def _rare_limit(self, last_request_time: float, min_interval: float = 0.2) -> float:
+    def _rate_limit(self, last_request_time: float, min_interval: float = 0.2) -> float:
         current_time = time.time()
         time_since_last = current_time - last_request_time
 
