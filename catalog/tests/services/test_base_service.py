@@ -6,14 +6,13 @@ import os
 import sys
 import tempfile
 import unittest
+import django
+from django.conf import settings
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-import django
-from django.conf import settings
 
 if not settings.configured:
     settings.configure(
