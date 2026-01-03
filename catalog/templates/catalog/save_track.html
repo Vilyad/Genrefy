@@ -1,0 +1,104 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Сохранить трек - Genrefy{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}">Главная</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'catalog:search' %}">Поиск</a></li>
+        <li class="breadcrumb-item active">Сохранить трек</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title text-center">
+                    <i class="fas fa-save text-success"></i> Сохранить трек
+                </h5>
+                
+                <form method="post" action="{% url 'catalog:save_track' %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="track_name" class="form-label">Название трека</label>
+                        <input type="text" class="form-control" id="track_name"
+                               name="track_name"
+                               value="{{ form.track_name.value|default:request.GET.track_name|default:'' }}"
+                               required>
+                        {% if form.track_name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.track_name.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="artist_name" class="form-label">Исполнитель</label>
+                        <input type="text" class="form-control" id="artist_name"
+                               name="artist_name"
+                               value="{{ form.artist_name.value|default:request.GET.artist_name|default:'' }}"
+                               required>
+                        {% if form.artist_name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.artist_name.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="genre" class="form-label">Основной жанр (опционально)</label>
+                        <select class="form-select" id="genre" name="genre">
+                            <option value="">-- Выберите жанр --</option>
+                            {% for genre in form.genre.field.queryset %}
+                            <option value="{{ genre.id }}"
+                                    {% if form.genre.value == genre.id %}selected{% endif %}>
+                                {{ genre.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.genre.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.genre.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Теги через запятую (опционально)</label>
+                        <input type="text" class="form-control" id="tags"
+                               name="tags"
+                               value="{{ form.tags.value|default:'' }}"
+                               placeholder="rock, alternative, indie">
+                        <div class="form-text">Например: rock, alternative, indie</div>
+                        {% if form.tags.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.tags.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-cloud-upload-alt"></i> Сохранить в базу
+                        </button>
+                        <a href="{% url 'catalog:search' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-search"></i> Вернуться к поиску
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle"></i>
+            Трек будет сохранен в локальную базу данных. 
+            Данные о слушателях и прослушиваниях будут загружены из Last.fm.
+        </div>
+    </div>
+</div>
+{% endblock %}
