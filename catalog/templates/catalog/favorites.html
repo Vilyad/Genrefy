@@ -1,0 +1,110 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Мое избранное - Genrefy{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}">Главная</a></li>
+        <li class="breadcrumb-item active">Избранное</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-heart text-danger"></i> Мои жанры
+                </h5>
+                
+                {% if favorite_genres %}
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% for genre in favorite_genres %}
+                    <a href="{% url 'catalog:genre_detail' genre.id %}" 
+                       class="badge bg-danger text-decoration-none p-2">
+                        {{ genre.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                
+                <p class="text-muted">
+                    <small>Всего жанров: {{ favorite_genres|length }}</small>
+                </p>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-heart-broken fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">У вас нет избранных жанров</p>
+                    <a href="{% url 'catalog:search' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i> Найти музыку
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        {% if recommendations.artists or recommendations.tracks %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-lightbulb text-warning"></i> Рекомендации
+                </h5>
+                <p class="text-muted">На основе ваших избранных жанров</p>
+
+                {% if recommendations.artists %}
+                <h6 class="mt-4">Исполнители для вас</h6>
+                <div class="row">
+                    {% for artist in recommendations.artists %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ artist.name }}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-headphones"></i> 
+                                        {{ artist.lastfm_listeners|default:"0"|floatformat:"0" }} слушателей
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0">
+                                <a href="{% url 'catalog:artist_detail' artist.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% if recommendations.tracks %}
+                <h6 class="mt-4">Треки для вас</h6>
+                <div class="list-group">
+                    {% for track in recommendations.tracks|slice:":5" %}
+                    <a href="{% url 'catalog:track_detail' track.id %}" 
+                       class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ track.title }}</h6>
+                            <small>{{ track.lastfm_playcount|default:"0"|floatformat:"0" }} прослушиваний</small>
+                        </div>
+                        <p class="mb-1">{{ track.artist.name }}</p>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% elif favorite_genres %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            Добавьте больше треков в избранное, чтобы получить персональные рекомендации
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
