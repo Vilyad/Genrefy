@@ -1,0 +1,134 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Поиск музыки - Genrefy{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}">Главная</a></li>
+        <li class="breadcrumb-item active">Поиск</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Поиск в Last.fm</h5>
+                <form method="get" action="{% url 'catalog:search' %}">
+                    <div class="mb-3">
+                        <label for="id_query" class="form-label">Что ищем?</label>
+                        <input type="text" class="form-control" id="id_query" name="query" 
+                               value="{{ request.GET.query|default:'' }}" 
+                               placeholder="Название трека или исполнителя...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_search_type" class="form-label">Тип поиска:</label>
+                        <select class="form-select" id="id_search_type" name="search_type">
+                            <option value="track" {% if search_type == 'track' %}selected{% endif %}>Треки</option>
+                            <option value="artist" {% if search_type == 'artist' %}selected{% endif %}>Исполнители</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Найти
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if results %}
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Результаты поиска</h6>
+                <p class="card-text">
+                    Найдено: <strong>{{ results|length }}</strong>
+                    {% if search_type == 'track' %}треков{% else %}исполнителей{% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-8">
+        {% if results %}
+            {% if search_type == 'track' %}
+                <div class="row">
+                    {% for track in results %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            {% if track.image %}
+                            <img src="{{ track.image }}" class="card-img-top" alt="{{ track.name }}" style="height: 150px; object-fit: cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ track.name }}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">{{ track.artist }}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-headphones"></i>
+                                        {{ track.listeners|default:"0"|floatformat:"0" }} слушателей
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'catalog:track_detail' %}?artist={{ track.artist|urlencode }}&track={{ track.name|urlencode }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i> Подробнее
+                                    </a>
+                                    <a href="{% url 'catalog:save_track' %}?track_name={{ track.name|urlencode }}&artist_name={{ track.artist|urlencode }}"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fas fa-save"></i> Сохранить
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="row">
+                    {% for artist in results %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            {% if artist.image %}
+                            <img src="{{ artist.image }}" class="card-img-top" alt="{{ artist.name }}" style="height: 150px; object-fit: cover;">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title">{{ artist.name }}</h5>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-headphones"></i>
+                                        {{ artist.listeners|default:"0"|floatformat:"0" }} слушателей
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0">
+                                <a href="{% url 'catalog:artist_detail' %}?artist={{ artist.name|urlencode }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-info-circle"></i> Подробнее
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% elif request.GET.query %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                По запросу "{{ request.GET.query }}" ничего не найдено.
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-search fa-4x mb-3"></i>
+                <h4>Начните поиск музыки</h4>
+                <p>Введите название трека или исполнителя в форму слева</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
