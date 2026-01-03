@@ -1,0 +1,172 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Аналитика жанров - Genrefy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .comparison-badge {
+        font-size: 0.8em;
+        padding: 3px 8px;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}">Главная</a></li>
+        <li class="breadcrumb-item active">Аналитика</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Настройки анализа</h5>
+        <form method="get" action="{% url 'catalog:analytics' %}" class="row g-3">
+            <div class="col-md-4">
+                <label for="id_time_period" class="form-label">Период</label>
+                {{ form.time_period }}
+            </div>
+            <div class="col-md-4">
+                <label for="id_limit" class="form-label">Количество жанров</label>
+                {{ form.limit }}
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-chart-bar"></i> Обновить
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if charts %}
+<div class="row">
+    {% for chart_id, chart_title, chart_html in charts %}
+    <div class="col-md-{% if forloop.counter == 3 %}12{% else %}6{% endif %} mb-4">
+        <div class="chart-container">
+            <h5>{{ chart_title }}</h5>
+            <div id="chart-{{ chart_id }}">
+                {{ chart_html|safe }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> Нет данных для построения графиков
+</div>
+{% endif %}
+
+{% if genres_table %}
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Сравнение жанров</h5>
+        <p class="text-muted">
+            Сравнение данных из локальной базы ({{ local_count }} жанров) 
+            и Last.fm ({{ lastfm_count }} жанров)
+        </p>
+        
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Жанр</th>
+                        <th class="text-center">Локальные треки</th>
+                        <th class="text-center">Локальные артисты</th>
+                        <th class="text-center">Last.fm популярность</th>
+                        <th class="text-center">Last.fm охват</th>
+                        <th class="text-center">Совпадение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for genre in genres_table %}
+                    <tr>
+                        <td>
+                            <strong>{{ genre.name }}</strong>
+                            {% if genre.match %}
+                            <i class="fas fa-check text-success ms-2"></i>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {{ genre.local_tracks|default:"0" }}
+                        </td>
+                        <td class="text-center">
+                            {{ genre.local_artists|default:"0" }}
+                        </td>
+                        <td class="text-center">
+                            {{ genre.lastfm_count|default:"0"|floatformat:"0" }}
+                        </td>
+                        <td class="text-center">
+                            {{ genre.lastfm_reach|default:"0"|floatformat:"0" }}
+                        </td>
+                        <td class="text-center">
+                            {% if genre.match %}
+                            <span class="badge bg-success comparison-badge">
+                                {{ genre.match_percentage|default:"0" }}%
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary comparison-badge">Нет</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Всего жанров в базе</h6>
+                <h3 class="card-title">{{ local_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Жанров в Last.fm</h6>
+                <h3 class="card-title">{{ lastfm_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted">Совпадений</h6>
+                <h3 class="card-title">
+                    {% widthratio genres_table|length|default:0 local_count|default:1 100 %}%
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('resize', function() {
+        Plotly.Plots.resize(document.getElementById('chart-local_genres'));
+        Plotly.Plots.resize(document.getElementById('chart-lastfm_genres'));
+        if (document.getElementById('chart-distribution')) {
+            Plotly.Plots.resize(document.getElementById('chart-distribution'));
+        }
+    });
+</script>
+{% endblock %}
