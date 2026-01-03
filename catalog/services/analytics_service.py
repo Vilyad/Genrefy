@@ -1,200 +1,259 @@
-"""
-Сервисы для аналитики и визуализации данных.
-"""
-from typing import Dict, List, Optional, Tuple
-from django.db.models import QuerySet
-from ..models import Genre
+import plotly.graph_objects as go
+import plotly.offline as pyo
+from django.db.models import Count
+
+from catalog.models import Genre
 from .lastfm_service import LastFMService
-from .visualization import VisualizationService
-from .catalog_service import CatalogService
 
 
 class AnalyticsService:
-    """Сервис для аналитики музыкальных данных."""
 
     @staticmethod
-    def get_analytics_data(time_period: str = 'overall', limit: int = 10) -> Dict:
-        """
-        Получение данных для аналитики жанров.
+    def get_analytics_data(time_period='overall', limit=10):
+        """Получение данных для аналитики."""
+        local_genres = AnalyticsService._get_local_genres()
+        lastfm_genres = AnalyticsService._get_lastfm_genres(limit)
 
-        Args:
-            time_period: Период анализа (не используется в текущей реализации, оставлен для совместимости)
-            limit: Максимальное количество жанров
-
-        Returns:
-            Словарь с данными для аналитики
-        """
-        # Локальная статистика из базы
-        local_genres = CatalogService.get_genre_statistics(limit)
-
-        # Топ жанров из Last.fm
-        lastfm_genres = AnalyticsService._get_lastfm_top_genres(limit)
-
-        # Создаем графики
         charts = AnalyticsService._create_charts(local_genres, lastfm_genres)
-
-        # Таблица сравнения
         comparison_table = AnalyticsService._create_comparison_table(local_genres, lastfm_genres)
 
         return {
-            'local_genres': local_genres,
-            'lastfm_genres': lastfm_genres,
             'charts': charts,
             'genres_table': comparison_table,
             'local_count': len(local_genres),
-            'lastfm_count': len(lastfm_genres)
+            'lastfm_count': len(lastfm_genres),
         }
 
     @staticmethod
-    def _get_lastfm_top_genres(limit: int) -> List[Dict]:
-        """
-        Получение топ жанров из Last.fm.
+    def _get_local_genres():
+        """Получение жанров из локальной базы с статистикой."""
+        genres = Genre.objects.annotate(
+            annotated_track_count=Count('artists__tracks', distinct=True),
+            annotated_artist_count=Count('artists', distinct=True)
+        ).order_by('-annotated_track_count')
 
-        Args:
-            limit: Максимальное количество жанров
+        return genres
 
-        Returns:
-            Список жанров из Last.fm
-        """
+    @staticmethod
+    def _get_lastfm_genres(limit):
+        """Получение популярных жанров из Last.fm."""
+        client = LastFMService()
+
         try:
-            lastfm = LastFMService()
-            return lastfm.get_top_tags(limit=limit)
-        except ValueError:
+            tags = client.get_top_tags(limit=limit)
+            return tags
+        except Exception as e:
+            print(f"Error getting Last.fm genres: {e}")
             return []
 
     @staticmethod
-    def _create_charts(local_genres: QuerySet, lastfm_genres: List[Dict]) -> List[Tuple]:
-        """
-        Создание графиков на основе данных.
-
-        Args:
-            local_genres: Локальные жанры из базы
-            lastfm_genres: Жанры из Last.fm
-
-        Returns:
-            Список кортежей (id, title, html_chart)
-        """
+    def _create_charts(local_genres, lastfm_genres):
+        """Создание графиков для отображения."""
         charts = []
-        viz = VisualizationService()
 
-        # 1. График локальных жанров
-        if local_genres:
-            local_data = [{
-                'name': genre.name,
-                'count': genre.track_count or 0,
-                'playcount': genre.total_playcount or 0
-            } for genre in local_genres]
+        if local_genres and len(local_genres) > 0:
+            local_chart_html = AnalyticsService._create_local_genres_chart(local_genres)
+            charts.append(('local_genres', 'Локальные жанры (по трекам)', local_chart_html))
 
-            chart_html = viz.create_genre_popularity_chart(local_data)
-            if chart_html:
-                charts.append(('local_genres', 'Популярность жанров в базе', chart_html))
+        if lastfm_genres and len(lastfm_genres) > 0:
+            lastfm_chart_html = AnalyticsService._create_lastfm_genres_chart(lastfm_genres)
+            charts.append(('lastfm_genres', 'Last.fm популярность жанров', lastfm_chart_html))
 
-        # 2. График жанров Last.fm
-        if lastfm_genres:
-            chart_html = viz.create_genre_popularity_chart(lastfm_genres)
-            if chart_html:
-                charts.append(('lastfm_genres', 'Топ жанров Last.fm', chart_html))
-
-            # 3. Круговая диаграмма распределения
-            pie_chart = viz.create_tag_distribution_chart(lastfm_genres)
-            if pie_chart:
-                charts.append(('distribution', 'Распределение жанров', pie_chart))
+        if local_genres and lastfm_genres and len(local_genres) > 0 and len(lastfm_genres) > 0:
+            distribution_chart = AnalyticsService._create_distribution_chart(local_genres, lastfm_genres)
+            if distribution_chart:
+                charts.append(('distribution', 'Распределение жанров', distribution_chart))
 
         return charts
 
     @staticmethod
-    def _create_comparison_table(local_genres: QuerySet, lastfm_genres: List[Dict]) -> List[Dict]:
-        """
-        Создание таблицы сравнения локальных и Last.fm жанров.
+    def _create_local_genres_chart(genres):
+        """Создание графика локальных жанров."""
+        top_genres = list(genres)[:10] if hasattr(genres, '__iter__') else []
 
-        Args:
-            local_genres: Локальные жанры
-            lastfm_genres: Жанры из Last.fm
+        if not top_genres:
+            return ""
 
-        Returns:
-            Список словарей с данными для таблицы
-        """
-        table = []
+        genre_names = [genre.name for genre in top_genres]
+        track_counts = [genre.annotated_track_count for genre in top_genres]
+        artist_counts = [genre.annotated_artist_count for genre in top_genres]
 
-        for local_genre in local_genres:
-            # Ищем совпадение в Last.fm
-            lastfm_match = next(
-                (g for g in lastfm_genres if g['name'].lower() == local_genre.name.lower()),
-                None
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=genre_names,
+            y=track_counts,
+            name='Треки',
+            marker_color='rgb(55, 83, 109)'
+        ))
+
+        fig.add_trace(go.Bar(
+            x=genre_names,
+            y=artist_counts,
+            name='Артисты',
+            marker_color='rgb(26, 118, 255)'
+        ))
+
+        fig.update_layout(
+            title='Топ локальных жанров',
+            xaxis_tickangle=-45,
+            barmode='group',
+            height=400,
+            showlegend=True
+        )
+
+        return pyo.plot(fig, output_type='div', include_plotlyjs=False)
+
+    @staticmethod
+    def _create_lastfm_genres_chart(lastfm_genres):
+        """Создание графика Last.fm жанров."""
+        if not lastfm_genres:
+            return ""
+
+        top_genres = lastfm_genres[:10]
+
+        genre_names = [tag.get('name', '') for tag in top_genres]
+        reach_values = [int(tag.get('reach', 0)) for tag in top_genres]
+        tag_counts = [int(tag.get('count', 0)) for tag in top_genres]
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=genre_names,
+            y=reach_values,
+            name='Охват',
+            marker_color='rgb(255, 140, 0)'
+        ))
+
+        fig.add_trace(go.Bar(
+            x=genre_names,
+            y=tag_counts,
+            name='Теги',
+            marker_color='rgb(50, 205, 50)'
+        ))
+
+        fig.update_layout(
+            title='Топ жанров Last.fm',
+            xaxis_tickangle=-45,
+            barmode='group',
+            height=400,
+            showlegend=True
+        )
+
+        return pyo.plot(fig, output_type='div', include_plotlyjs=False)
+
+    @staticmethod
+    def _create_distribution_chart(local_genres, lastfm_genres):
+        """Создание графика распределения."""
+        try:
+            local_list = list(local_genres)
+            top_local = {genre.name: genre.annotated_track_count for genre in local_list[:5]}
+            top_lastfm = {}
+
+            for tag in lastfm_genres[:5]:
+                name = tag.get('name', '')
+                if name:
+                    top_lastfm[name] = int(tag.get('count', 0))
+
+            all_genres = set(list(top_local.keys()) + list(top_lastfm.keys()))
+
+            local_values = [top_local.get(genre, 0) for genre in all_genres]
+            lastfm_values = [top_lastfm.get(genre, 0) for genre in all_genres]
+
+            max_local = max(local_values) if local_values else 1
+            max_lastfm = max(lastfm_values) if lastfm_values else 1
+
+            normalized_local = [v / max_local * 100 for v in local_values]
+            normalized_lastfm = [v / max_lastfm * 100 for v in lastfm_values]
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Bar(
+                x=list(all_genres),
+                y=normalized_local,
+                name='Локальные',
+                marker_color='rgb(55, 83, 109)'
+            ))
+
+            fig.add_trace(go.Bar(
+                x=list(all_genres),
+                y=normalized_lastfm,
+                name='Last.fm',
+                marker_color='rgb(255, 140, 0)'
+            ))
+
+            fig.update_layout(
+                title='Сравнение популярности жанров',
+                xaxis_tickangle=-45,
+                barmode='group',
+                height=400,
+                showlegend=True,
+                yaxis_title='Нормализованная популярность (%)'
             )
 
-            table.append({
-                'name': local_genre.name,
-                'local_tracks': local_genre.track_count,
-                'local_artists': local_genre.artist_count,
-                'local_playcount': local_genre.total_playcount or 0,
-                'lastfm_count': lastfm_match.get('count', 0) if lastfm_match else 0,
-                'lastfm_reach': lastfm_match.get('reach', 0) if lastfm_match else 0,
-                'match': lastfm_match is not None,
-                'match_percentage': AnalyticsService._calculate_match_percentage(
-                    local_genre.track_count or 0,
-                    lastfm_match.get('count', 0) if lastfm_match else 0
-                ) if lastfm_match else 0
-            })
-
-        return table
+            return pyo.plot(fig, output_type='div', include_plotlyjs=False)
+        except Exception as e:
+            print(f"Error creating distribution chart: {e}")
+            return ""
 
     @staticmethod
-    def _calculate_match_percentage(local_count: int, lastfm_count: int) -> float:
-        """
-        Расчет процента соответствия между локальными и Last.fm данными.
+    def _create_comparison_table(local_genres, lastfm_genres):
+        """Создание таблицы сравнения жанров."""
+        comparison_data = []
 
-        Args:
-            local_count: Количество в локальной базе
-            lastfm_count: Количество в Last.fm
+        local_list = list(local_genres)
 
-        Returns:
-            Процент соответствия (0-100)
-        """
-        if lastfm_count == 0:
-            return 0.0
+        local_dict = {genre.name.lower(): genre for genre in local_list}
+        lastfm_dict = {}
 
-        # Используем минимальное значение как базовое для расчета процента
-        min_count = min(local_count, lastfm_count)
-        max_count = max(local_count, lastfm_count)
+        for tag in lastfm_genres:
+            name = tag.get('name', '')
+            if name:
+                lastfm_dict[name.lower()] = tag
 
-        if max_count == 0:
-            return 0.0
+        common_genres = set(local_dict.keys()) & set(lastfm_dict.keys())
 
-        return round((min_count / max_count) * 100, 1)
+        for genre_name in sorted(common_genres)[:20]:
+            local_genre = local_dict.get(genre_name)
+            lastfm_tag = lastfm_dict.get(genre_name)
 
-    @staticmethod
-    def get_genre_trend_data(genre_name: str, days_back: int = 30) -> Dict:
-        """
-        Получение данных о тренде жанра.
+            if local_genre and lastfm_tag:
+                comparison_data.append({
+                    'name': local_genre.name,
+                    'local_tracks': local_genre.annotated_track_count,
+                    'local_artists': local_genre.annotated_artist_count,
+                    'lastfm_count': lastfm_tag.get('count', 0),
+                    'lastfm_reach': lastfm_tag.get('reach', 0),
+                    'match': True,
+                    'match_percentage': 100
+                })
 
-        Args:
-            genre_name: Название жанра
-            days_back: Количество дней для анализа
+        local_only = set(local_dict.keys()) - set(lastfm_dict.keys())
+        for genre_name in sorted(local_only)[:10]:
+            local_genre = local_dict.get(genre_name)
+            if local_genre:
+                comparison_data.append({
+                    'name': local_genre.name,
+                    'local_tracks': local_genre.annotated_track_count,
+                    'local_artists': local_genre.annotated_artist_count,
+                    'lastfm_count': 0,
+                    'lastfm_reach': 0,
+                    'match': False,
+                    'match_percentage': 0
+                })
 
-        Returns:
-            Данные о тренде
-        """
-        # Здесь можно реализовать сбор исторических данных
-        # Для примера возвращаем заглушку
-        return {
-            'genre': genre_name,
-            'trend': 'stable',  # rising, falling, stable
-            'change_percentage': 0.0,
-            'data_points': []
-        }
+        lastfm_only = set(lastfm_dict.keys()) - set(local_dict.keys())
+        for genre_name in sorted(lastfm_only)[:10]:
+            lastfm_tag = lastfm_dict.get(genre_name)
+            if lastfm_tag:
+                comparison_data.append({
+                    'name': lastfm_tag.get('name', ''),
+                    'local_tracks': 0,
+                    'local_artists': 0,
+                    'lastfm_count': lastfm_tag.get('count', 0),
+                    'lastfm_reach': lastfm_tag.get('reach', 0),
+                    'match': False,
+                    'match_percentage': 0
+                })
 
-    @staticmethod
-    def get_correlation_analysis() -> Dict:
-        """
-        Анализ корреляции между жанрами.
-
-        Returns:
-            Данные о корреляциях
-        """
-        # Заглушка для будущей реализации
-        return {
-            'correlations': [],
-            'strongest_pair': None,
-            'weakest_pair': None
-        }
+        return comparison_data

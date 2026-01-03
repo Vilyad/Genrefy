@@ -236,6 +236,20 @@ class Track(models.Model):
     def get_absolute_url(self):
         return reverse('track_detail', kwargs={'pk': self.pk})
 
+    def get_lastfm_data(self):
+        """Проверяет, есть ли данные из Last.fm."""
+        return bool(self.lastfm_listeners or self.lastfm_playcount)
+
+    @property
+    def formatted_duration(self):
+        """Форматирует длительность трека."""
+        if not self.duration:
+            return "Неизвестно"
+
+        minutes = self.duration // 60
+        seconds = self.duration % 60
+        return f"{minutes}:{seconds:02d}"
+
     @property
     def tags(self):
         """Получение тегов как списка."""
