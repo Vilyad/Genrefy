@@ -15,37 +15,37 @@ class CatalogService:
     """Сервис для работы с каталогом музыки."""
 
     @staticmethod
-    def get_genre_statistics(limit: int = 50) -> QuerySet:
+    def get_genre_statistics(limit: int = 50):
         """
         Получение статистики по жанрам.
-
-        Args:
-            limit: Максимальное количество жанров
-
-        Returns:
-            QuerySet жанров со статистикой
         """
+        # Используем другие имена для аннотаций, чтобы не конфликтовать с полями модели
         return Genre.objects.annotate(
-            track_count=Count('artists__tracks'),
-            artist_count=Count('artists'),
+            annotated_track_count=Count('artists__tracks'),
+            annotated_artist_count=Count('artists'),
             total_playcount=Sum('artists__tracks__lastfm_playcount')
         ).order_by('-total_playcount')[:limit]
 
     @staticmethod
-    def get_genre_with_details(pk: int) -> Tuple:
+    def get_genre_with_details(pk: int):
         """
         Получение жанра с детальной информацией.
-
-        Args:
-            pk: ID жанра
-
-        Returns:
-            Кортеж (genre, artists, tracks, top_tracks)
         """
         genre = get_object_or_404(Genre, pk=pk)
+
+        # Используем аннотации для подсчета
+        artists_count = Artist.objects.filter(genres=genre).count()
+        tracks_count = Track.objects.filter(artist__genres=genre).count()
+
+        # Получаем данные
         artists = Artist.objects.filter(genres=genre)[:10]
         tracks = Track.objects.filter(artist__genres=genre).select_related('artist')[:20]
 
+        # Добавляем счетчики к объекту genre
+        genre.artist_count = artists_count
+        genre.track_count = tracks_count
+
+        # Получаем топ треков из Last.fm
         top_tracks = []
         try:
             lastfm = LastFMService()

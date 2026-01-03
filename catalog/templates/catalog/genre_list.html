@@ -11,8 +11,8 @@
             <div class="card-body">
                 <h5 class="card-title">{{ genre.name }}</h5>
                 <p class="card-text">
-                    Артистов: {{ genre.artist_count|default:"0" }}<br>
-                    Треков: {{ genre.track_count|default:"0" }}
+                    Артистов: {{ genre.display_artist_count|default:genre.annotated_artist_count|default:"0" }}<br>
+                    Треков: {{ genre.display_track_count|default:genre.annotated_track_count|default:"0" }}
                 </p>
                 <a href="{% url 'catalog:genre_detail' genre.id %}" class="btn btn-primary btn-sm">
                     Подробнее
@@ -24,7 +24,7 @@
 </div>
 {% else %}
 <div class="alert alert-info">
-    Жанров пока нет
+    Жанров пока нет. <a href="{% url 'admin:catalog_genre_add' %}">Добавить жанр</a>
 </div>
 {% endif %}
 {% endblock %}
