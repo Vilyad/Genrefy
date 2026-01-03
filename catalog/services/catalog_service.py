@@ -4,7 +4,7 @@
 from typing import Dict, List, Optional, Tuple
 
 from django.contrib.auth.models import User
-from django.db.models import QuerySet, Count, Sum
+from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404
 
 from .lastfm_service import LastFMService
@@ -19,10 +19,9 @@ class CatalogService:
         """
         Получение статистики по жанрам.
         """
-        # Используем другие имена для аннотаций, чтобы не конфликтовать с полями модели
         return Genre.objects.annotate(
-            annotated_track_count=Count('artists__tracks'),
-            annotated_artist_count=Count('artists'),
+            annotated_track_count=Count('artists__tracks', distinct=True),
+            annotated_artist_count=Count('artists', distinct=True),
             total_playcount=Sum('artists__tracks__lastfm_playcount')
         ).order_by('-total_playcount')[:limit]
 
@@ -33,19 +32,15 @@ class CatalogService:
         """
         genre = get_object_or_404(Genre, pk=pk)
 
-        # Используем аннотации для подсчета
         artists_count = Artist.objects.filter(genres=genre).count()
         tracks_count = Track.objects.filter(artist__genres=genre).count()
 
-        # Получаем данные
         artists = Artist.objects.filter(genres=genre)[:10]
         tracks = Track.objects.filter(artist__genres=genre).select_related('artist')[:20]
 
-        # Добавляем счетчики к объекту genre
         genre.artist_count = artists_count
         genre.track_count = tracks_count
 
-        # Получаем топ треков из Last.fm
         top_tracks = []
         try:
             lastfm = LastFMService()
