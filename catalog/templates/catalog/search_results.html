@@ -75,7 +75,7 @@
                             </div>
                             <div class="card-footer bg-transparent border-top-0">
                                 <div class="d-flex justify-content-between">
-                                    <a href="{% url 'catalog:track_detail' %}?artist={{ track.artist|urlencode }}&track={{ track.name|urlencode }}"
+                                    <a href="{% url 'catalog:track_detail_by_params' %}?artist={{ track.artist|urlencode }}&track={{ track.name|urlencode }}"
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-info-circle"></i> Подробнее
                                     </a>
@@ -107,7 +107,7 @@
                                 </p>
                             </div>
                             <div class="card-footer bg-transparent border-top-0">
-                                <a href="{% url 'catalog:artist_detail' %}?artist={{ artist.name|urlencode }}" 
+                                <a href="{% url 'catalog:artist_detail_by_name' %}?artist={{ artist.name|urlencode }}"
                                    class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-info-circle"></i> Подробнее
                                 </a>
