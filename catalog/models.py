@@ -1,9 +1,10 @@
 """
 Модели данных для приложения catalog.
 """
+import json
 from django.db import models
 from django.urls import reverse
-import json
+from django.contrib.auth.models import User
 
 
 class Genre(models.Model):
@@ -292,3 +293,31 @@ class Track(models.Model):
             )
             if genre not in self.artist.genres.all():
                 self.artist.genres.add(genre)
+
+
+class Favorite(models.Model):
+    """Модель для хранения избранных жанров пользователя"""
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь",
+        related_name="favorites"
+    )
+    genre = models.ForeignKey(
+        Genre,
+        on_delete=models.CASCADE,
+        verbose_name="Жанр",
+        related_name="favorited_by"
+    )
+    created_at = models.DateTimeField(
+        verbose_name="Дата добавления",
+        auto_now_add=True
+    )
+
+    class Meta:
+        verbose_name = "Избранное"
+        verbose_name_plural = "Избранное"
+        unique_together = ['user', 'genre']
+
+    def __str__(self):
+        return f"{self.user.username} → {self.genre.name}"

@@ -93,7 +93,7 @@ class Command(BaseCommand):
                 )
 
                 if not track_info:
-                    self.stdout.write(self.style.WARNING(f"⚠Не найден: {demo_track['track']}"))
+                    self.stdout.write(self.style.WARNING(f"Не найден: {demo_track['track']}"))
                     continue
 
                 artist_obj, artist_created = Artist.objects.get_or_create(
