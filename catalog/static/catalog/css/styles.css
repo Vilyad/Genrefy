@@ -38,6 +38,12 @@ small {
     opacity: 0.8;
 }
 
+.card-title {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
 .card {
     border: 1px solid #e9ecef;
     border-radius: 10px;
@@ -92,6 +98,19 @@ small {
     border-color: #5a67d8;
 }
 
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+
 .btn {
     transition: all 0.2s;
 }
@@ -135,4 +154,28 @@ small {
 [data-format-number] span {
     border-bottom: 1px dotted #667eea;
     cursor: help;
+}
+
+.form-control, .form-select {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-text {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.invalid-feedback {
+    color: #dc3545;
+    font-size: 0.85rem;
+    margin-top: 5px;
 }
