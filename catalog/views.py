@@ -144,7 +144,7 @@ def analytics_view(request):
         time_period = 'overall'
         limit = 10
 
-    data = AnalyticsService.get_analytics_data(time_period, limit)
+    data = AnalyticsService.get_analytics_data(limit)
 
     return render(request, 'catalog/analytics.html', {
         'form': form,

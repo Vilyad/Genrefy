@@ -9,7 +9,7 @@ from .lastfm_service import LastFMService
 class AnalyticsService:
 
     @staticmethod
-    def get_analytics_data(time_period='overall', limit=10):
+    def get_analytics_data(limit=10):
         """Получение данных для аналитики."""
         local_genres = AnalyticsService._get_local_genres()
         lastfm_genres = AnalyticsService._get_lastfm_genres(limit)
