@@ -12,8 +12,8 @@ def genre_list(request):
     genres = CatalogService.get_genre_statistics()
 
     for genre in genres:
-        genre.display_track_count = genre.annotated_track_count or 0
-        genre.display_artist_count = genre.annotated_artist_count or 0
+        genre.display_track_count = getattr(genre, 'annotated_track_count', 0)
+        genre.display_artist_count = getattr(genre, 'annotated_artist_count', 0)
 
     return render(request, 'catalog/genre_list.html', {
         'genres': genres,
@@ -70,7 +70,6 @@ def track_detail(request, pk=None):
 
         return render(request, 'catalog/track_detail.html', {
             'track': track,
-            'tags': track.tags[:10] if track.tags else [],
             'favorite_form': favorite_form,
             'page_title': f'{track.title} - {track.artist.name}'
         })
@@ -79,13 +78,21 @@ def track_detail(request, pk=None):
         track_name = request.GET.get('track')
         artist_name = request.GET.get('artist')
 
-        track, created = CatalogService.get_or_create_track_from_lastfm(track_name, artist_name)
+        track = Track.objects.filter(
+            title__iexact=track_name,
+            artist__name__iexact=artist_name
+        ).first()
 
         if track:
             return redirect('catalog:track_detail', pk=track.pk)
         else:
-            messages.error(request, 'Трек не найден')
-            return redirect('catalog:search')
+            track, created = CatalogService.get_or_create_track_from_lastfm(track_name, artist_name)
+
+            if track:
+                return redirect('catalog:track_detail', pk=track.pk)
+            else:
+                messages.error(request, 'Трек не найден')
+                return redirect('catalog:search')
 
     messages.error(request, 'Не указаны параметры')
     return redirect('catalog:search')
@@ -109,13 +116,18 @@ def artist_detail(request, pk=None):
     elif request.GET.get('artist'):
         artist_name = request.GET.get('artist')
 
-        artist, created = CatalogService.get_or_create_artist_from_lastfm(artist_name)
+        artist = Artist.objects.filter(name__iexact=artist_name).first()
 
         if artist:
-            return redirect('catalog:artist_detail_pk', pk=artist.pk)
+            return redirect('catalog:artist_detail', pk=artist.pk)
         else:
-            messages.error(request, 'Исполнитель не найден в Last.fm')
-            return redirect('catalog:search')
+            artist, created = CatalogService.get_or_create_artist_from_lastfm(artist_name)
+
+            if artist:
+                return redirect('catalog:artist_detail', pk=artist.pk)
+            else:
+                messages.error(request, f'Исполнитель "{artist_name}" не найден в Last.fm')
+                return redirect('catalog:search')
 
     messages.error(request, 'Не указано имя исполнителя')
     return redirect('catalog:search')
@@ -125,8 +137,12 @@ def analytics_view(request):
     """Аналитика жанров."""
     form = GenreAnalysisForm(request.GET or None)
 
-    time_period = form.cleaned_data.get('time_period', 'overall') if form.is_valid() else 'overall'
-    limit = form.cleaned_data.get('limit', 10) if form.is_valid() else 10
+    if form.is_valid():
+        time_period = form.cleaned_data.get('time_period', 'overall')
+        limit = form.cleaned_data.get('limit', 10)
+    else:
+        time_period = 'overall'
+        limit = 10
 
     data = AnalyticsService.get_analytics_data(time_period, limit)
 

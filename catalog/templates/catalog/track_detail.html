@@ -18,33 +18,29 @@
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="row g-0">
-                {% if track.image_url or track_info.image %}
+                {% if track.image_url %}
                 <div class="col-md-4">
-                    <img src="{{ track.image_url|default:track_info.image }}"
-                         class="img-fluid rounded-start" alt="{{ track.title|default:track_info.name }}">
+                    <img src="{{ track.image_url }}"
+                         class="img-fluid rounded-start" alt="{{ track.title }}">
                 </div>
                 {% endif %}
-                <div class="col-md-{% if track.image_url or track_info.image %}8{% else %}12{% endif %}">
+                <div class="col-md-{% if track.image_url %}8{% else %}12{% endif %}">
                     <div class="card-body">
-                        <h2 class="card-title">{{ track.title|default:track_info.name }}</h2>
+                        <h2 class="card-title">{{ track.title }}</h2>
                         <h4 class="card-subtitle mb-3 text-muted">
-                            {{ track.artist.name|default:track_info.artist }}
+                            {{ track.artist.name }}
                         </h4>
 
-                        {% if track.album or track_info.album %}
+                        {% if track.album %}
                         <p class="card-text">
-                            <strong>Альбом:</strong> {{ track.album|default:track_info.album }}
+                            <strong>Альбом:</strong> {{ track.album }}
                         </p>
                         {% endif %}
 
-                        {% if track.duration or track_info.duration %}
+                        {% if track.duration %}
                         <p class="card-text">
                             <strong>Длительность:</strong>
-                            {% if track.duration %}
-                                {{ track.formatted_duration }}
-                            {% else %}
-                                {{ track_info.duration }} сек
-                            {% endif %}
+                            {{ track.formatted_duration }}
                         </p>
                         {% endif %}
 
@@ -54,7 +50,7 @@
                                     <div class="card-body text-center">
                                         <h6 class="card-subtitle mb-1 text-muted">Слушатели</h6>
                                         <h4 class="card-title">
-                                            {{ track.lastfm_listeners|default:track_info.listeners|default:"0"|floatformat:"0" }}
+                                            {{ track.lastfm_listeners|default:"0"|floatformat:"0" }}
                                         </h4>
                                     </div>
                                 </div>
@@ -64,25 +60,23 @@
                                     <div class="card-body text-center">
                                         <h6 class="card-subtitle mb-1 text-muted">Прослушивания</h6>
                                         <h4 class="card-title">
-                                            {{ track.lastfm_playcount|default:track_info.playcount|default:"0"|floatformat:"0" }}
+                                            {{ track.lastfm_playcount|default:"0"|floatformat:"0" }}
                                         </h4>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {% with track_tags=track.tags|default:track_info.tags %}
-                        {% if track_tags %}
+                        {% if track.tags %}
                         <div class="mt-3">
                             <h6>Теги:</h6>
                             <div class="d-flex flex-wrap gap-2">
-                                {% for tag in track_tags %}
+                                {% for tag in track.tags|slice:":10" %}
                                 <span class="badge bg-primary">{{ tag }}</span>
                                 {% endfor %}
                             </div>
                         </div>
                         {% endif %}
-                        {% endwith %}
                     </div>
                 </div>
             </div>
@@ -91,8 +85,8 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex gap-2">
-                    {% if track_in_db or track.id %}
-                    <a href="{% url 'catalog:track_detail' pk=track.id|default:track_in_db.id %}"
+                    {% if track.id %}
+                    <a href="{% url 'catalog:track_detail' pk=track.id %}"
                        class="btn btn-outline-primary">
                         <i class="fas fa-database"></i> В базе
                     </a>
@@ -111,14 +105,14 @@
                     {% endif %}
 
                     {% else %}
-                    <a href="{% url 'catalog:save_track' %}?track_name={{ track_info.name|urlencode }}&artist_name={{ track_info.artist|urlencode }}"
+                    <a href="{% url 'catalog:save_track' %}?track_name={{ track.title|urlencode }}&artist_name={{ track.artist.name|urlencode }}"
                        class="btn btn-success">
                         <i class="fas fa-save"></i> Сохранить в базу
                     </a>
                     {% endif %}
 
-                    {% if track.lastfm_url or track_info.url %}
-                    <a href="{{ track.lastfm_url|default:track_info.url }}"
+                    {% if track.lastfm_url %}
+                    <a href="{{ track.lastfm_url }}"
                        target="_blank" class="btn btn-outline-dark">
                         <i class="fab fa-lastfm"></i> Last.fm
                     </a>
@@ -132,16 +126,16 @@
         <div class="card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Исполнитель</h5>
-                <h6 class="card-subtitle mb-3">{{ track.artist.name|default:track_info.artist }}</h6>
+                <h6 class="card-subtitle mb-3">{{ track.artist.name }}</h6>
 
-                <a href="{% url 'catalog:artist_detail' %}?artist={{ track.artist.name|default:track_info.artist|urlencode }}"
+                <a href="{% url 'catalog:artist_detail' track.artist.id %}"
                    class="btn btn-outline-primary btn-sm">
                     <i class="fas fa-user"></i> Подробнее об исполнителе
                 </a>
             </div>
         </div>
 
-        {% if track.artist.genres.all or track_info.artist_genres %}
+        {% if track.artist.genres.all %}
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Жанры исполнителя</h5>
