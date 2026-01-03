@@ -166,7 +166,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Артистов: {Artist.objects.count()}")
         self.stdout.write(f"  Треков: {Track.objects.count()}")
 
-        self.stdout.write("\n🏆 Топ 5 треков по прослушиваниям:")
+        self.stdout.write("\nТоп 5 треков по прослушиваниям:")
         for track in Track.objects.order_by('-lastfm_playcount')[:5]:
             self.stdout.write(
                 f"  • {track.title} - {track.artist.name} "
