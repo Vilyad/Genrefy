@@ -1,19 +1,82 @@
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 
 from .forms import SearchForm, AddTrackFromLastFMForm, FavoriteForm, GenreAnalysisForm
-from .models import Artist, Track
+from .models import Genre, Artist, Track, Favorite
 from .services import CatalogService, AnalyticsService
+
+
+@csrf_exempt
+@require_POST
+@login_required
+def toggle_favorite(request):
+    """Добавление/удаление элемента из избранного (AJAX)."""
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('item_id')
+        item_type = data.get('item_type', 'genre')
+
+        if not item_id:
+            return JsonResponse({'status': 'error', 'message': 'No item_id provided'})
+
+        if item_type == 'genre':
+            try:
+                genre = Genre.objects.get(id=item_id)
+                item_id = str(genre.id)
+            except (Genre.DoesNotExist, ValueError):
+                return JsonResponse({'status': 'error', 'message': 'Genre not found'})
+
+        favorite = Favorite.objects.filter(
+            user=request.user,
+            item_type=item_type,
+            item_id=item_id
+        ).first()
+
+        if favorite:
+            favorite.delete()
+            action = 'removed'
+            is_favorite = False
+        else:
+            Favorite.objects.create(
+                user=request.user,
+                item_type=item_type,
+                item_id=item_id
+            )
+            action = 'added'
+            is_favorite = True
+
+        return JsonResponse({
+            'status': 'success',
+            'action': action,
+            'is_favorite': is_favorite,
+            'item_id': item_id,
+            'item_type': item_type
+        })
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
 
 
 def genre_list(request):
     """Список жанров."""
     genres = CatalogService.get_genre_statistics()
 
+    favorite_genres_ids = []
+    if request.user.is_authenticated:
+        favorite_genres_ids = Favorite.objects.filter(
+            user=request.user,
+            item_type='genre'
+        ).values_list('item_id', flat=True)
+
     for genre in genres:
         genre.display_track_count = getattr(genre, 'annotated_track_count', 0)
         genre.display_artist_count = getattr(genre, 'annotated_artist_count', 0)
+        genre.is_favorite = str(genre.id) in favorite_genres_ids
 
     return render(request, 'catalog/genre_list.html', {
         'genres': genres,
@@ -155,7 +218,7 @@ def analytics_view(request):
 
 @login_required
 def add_to_favorites(request):
-    """Добавление в избранное."""
+    """Добавление в избранное (через форму на странице трека)."""
     if request.method == 'POST':
         form = FavoriteForm(request.POST)
         if form.is_valid():
@@ -166,8 +229,10 @@ def add_to_favorites(request):
 
             if added > 0:
                 messages.success(request, f'Добавлено {added} жанров в избранное')
-            else:
+            elif existing > 0:
                 messages.info(request, 'Эти жанры уже в избранном')
+            else:
+                messages.warning(request, 'У трека нет жанров для добавления')
 
             return redirect('catalog:track_detail', pk=track.id)
 
@@ -177,10 +242,21 @@ def add_to_favorites(request):
 @login_required
 def my_favorites(request):
     """Избранное пользователя."""
-    data = CatalogService.get_user_favorites_with_recommendations(request.user)
+    favorite_genres_ids = Favorite.objects.filter(
+        user=request.user,
+        item_type='genre'
+    ).values_list('item_id', flat=True)
+
+    favorite_genres = Genre.objects.filter(id__in=favorite_genres_ids)
+
+    recommendations = {
+        'artists': Artist.objects.filter(genres__in=favorite_genres).distinct()[:4],
+        'tracks': Track.objects.filter(artist__genres__in=favorite_genres).distinct()[:5]
+    }
 
     return render(request, 'catalog/favorites.html', {
-        **data,
+        'favorite_genres': favorite_genres,
+        'recommendations': recommendations,
         'page_title': 'Мои избранные жанры'
     })
 

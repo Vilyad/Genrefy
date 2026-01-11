@@ -310,19 +310,32 @@ class Track(models.Model):
 
 
 class Favorite(models.Model):
-    """Модель для хранения избранных жанров пользователя"""
+    """Модель для хранения избранных элементов пользователя"""
+    ITEM_TYPES = [
+        ('genre', 'Жанр'),
+        ('track', 'Трек'),
+        ('artist', 'Исполнитель'),
+    ]
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         verbose_name="Пользователь",
         related_name="favorites"
     )
-    genre = models.ForeignKey(
-        Genre,
-        on_delete=models.CASCADE,
-        verbose_name="Жанр",
-        related_name="favorited_by"
+
+    item_type = models.CharField(
+        max_length=20,
+        choices=ITEM_TYPES,
+        verbose_name="Тип элемента",
+        default='genre'
     )
+    item_id = models.CharField(
+        max_length=255,
+        verbose_name="ID элемента",
+        help_text="ID жанра, трека или исполнителя"
+    )
+
     created_at = models.DateTimeField(
         verbose_name="Дата добавления",
         auto_now_add=True
@@ -331,7 +344,32 @@ class Favorite(models.Model):
     class Meta:
         verbose_name = "Избранное"
         verbose_name_plural = "Избранное"
-        unique_together = ['user', 'genre']
+        unique_together = ['user', 'item_type', 'item_id']
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} → {self.genre.name}"
+        item_name = self.get_item_name()
+        return f"{self.user.username} → {self.get_item_type_display()}: {item_name}"
+
+    def get_item_name(self):
+        """Получение названия связанного элемента."""
+        if self.item_type == 'genre':
+            genre = Genre.objects.filter(id=self.item_id).first()
+            return genre.name if genre else f"Жанр #{self.item_id}"
+        elif self.item_type == 'track':
+            track = Track.objects.filter(id=self.item_id).first()
+            return track.title if track else f"Трек #{self.item_id}"
+        elif self.item_type == 'artist':
+            artist = Artist.objects.filter(id=self.item_id).first()
+            return artist.name if artist else f"Исполнитель #{self.item_id}"
+        return f"Элемент #{self.item_id}"
+
+    def get_item(self):
+        """Получение связанного объекта."""
+        if self.item_type == 'genre':
+            return Genre.objects.filter(id=self.item_id).first()
+        elif self.item_type == 'track':
+            return Track.objects.filter(id=self.item_id).first()
+        elif self.item_type == 'artist':
+            return Artist.objects.filter(id=self.item_id).first()
+        return None
