@@ -28,7 +28,7 @@
                         <label for="track_name" class="form-label">Название трека</label>
                         <input type="text" class="form-control" id="track_name"
                                name="track_name"
-                               value="{{ form.track_name.value|default:request.GET.track_name|default:'' }}"
+                               value="{{ request.GET.track_name|default:'' }}"
                                required>
                         {% if form.track_name.errors %}
                         <div class="invalid-feedback d-block">
@@ -41,7 +41,7 @@
                         <label for="artist_name" class="form-label">Исполнитель</label>
                         <input type="text" class="form-control" id="artist_name"
                                name="artist_name"
-                               value="{{ form.artist_name.value|default:request.GET.artist_name|default:'' }}"
+                               value="{{ request.GET.artist_name|default:'' }}"
                                required>
                         {% if form.artist_name.errors %}
                         <div class="invalid-feedback d-block">

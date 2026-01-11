@@ -166,26 +166,30 @@ class CatalogService:
         return False
 
     @staticmethod
-    def add_to_favorites(user: User, track: Track) -> Tuple[int, int]:
-        """
-        Добавление жанров трека в избранное.
+    def add_to_favorites(user, track):
+        """Добавление жанров трека в избранное пользователя."""
+        if not user.is_authenticated:
+            return 0, 0
 
-        Args:
-            user: Пользователь
-            track: Трек для добавления
-
-        Returns:
-            Кортеж (добавлено_новых, уже_в_избранном)
-        """
+        genres = track.artist.genres.all()
         added = 0
         existing = 0
 
-        for genre in track.artist.genres.all()[:3]:
-            _, created = Favorite.objects.get_or_create(
+        for genre in genres:
+            item_id_str = str(genre.id)
+
+            exists = Favorite.objects.filter(
                 user=user,
-                genre=genre
-            )
-            if created:
+                item_type='genre',
+                item_id=item_id_str
+            ).exists()
+
+            if not exists:
+                Favorite.objects.create(
+                    user=user,
+                    item_type='genre',
+                    item_id=item_id_str
+                )
                 added += 1
             else:
                 existing += 1
@@ -193,31 +197,28 @@ class CatalogService:
         return added, existing
 
     @staticmethod
-    def get_user_favorites_with_recommendations(user: User) -> Dict:
-        """
-        Получение избранного и рекомендаций пользователя.
+    def get_user_favorites_with_recommendations(user):
+        """Получение избранных жанров пользователя с рекомендациями."""
+        favorite_genres_ids_str = Favorite.objects.filter(
+            user=user,
+            item_type='genre'
+        ).values_list('item_id', flat=True)
 
-        Args:
-            user: Пользователь
+        favorite_genres_ids = []
+        for id_str in favorite_genres_ids_str:
+            try:
+                favorite_genres_ids.append(int(id_str))
+            except (ValueError, TypeError):
+                continue
 
-        Returns:
-            Словарь с избранным и рекомендациями
-        """
-        favorites = Favorite.objects.filter(user=user).select_related('genre')
-        favorite_genres = [fav.genre for fav in favorites]
+        favorite_genres = Genre.objects.filter(id__in=favorite_genres_ids)
 
-        recommendations = {}
-        if favorite_genres:
-            recommendations['artists'] = Artist.objects.filter(
-                genres__in=favorite_genres
-            ).distinct().order_by('-lastfm_listeners')[:10]
-
-            recommendations['tracks'] = Track.objects.filter(
-                artist__genres__in=favorite_genres
-            ).distinct().order_by('-lastfm_playcount')[:15]
+        recommendations = {
+            'artists': Artist.objects.filter(genres__in=favorite_genres).distinct()[:4],
+            'tracks': Track.objects.filter(artist__genres__in=favorite_genres).distinct()[:5]
+        }
 
         return {
-            'favorites': favorites,
             'favorite_genres': favorite_genres,
             'recommendations': recommendations
         }
