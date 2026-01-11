@@ -1,1 +1,1 @@
-web: python -m gunicorn genrefy_project.wsgi:application
+web: gunicorn genrefy_project.wsgi:application
