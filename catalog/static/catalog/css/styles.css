@@ -186,17 +186,26 @@ small {
 }
 
 .favorite-icon {
-    color: var(--lastfm-red);
-    cursor: pointer;
-    font-size: 1.5em;
-    padding: 5px;
-    border-radius: 50%;
     transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .favorite-icon:hover {
-    background-color: var(--lastfm-red-light);
-    transform: scale(1.1);
+    transform: scale(1.2);
+}
+
+.favorite-icon.active {
+    color: var(--lastfm-red);
+}
+
+@keyframes favoritePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.favorite-icon.pulse {
+    animation: favoritePulse 0.3s ease;
 }
 
 .favorite-button {
