@@ -15,15 +15,20 @@ class CatalogService:
     """Сервис для работы с каталогом музыки."""
 
     @staticmethod
-    def get_genre_statistics(limit: int = 50):
+    def get_genre_statistics(limit: int = 100, search_query: str = None):
         """
-        Получение статистики по жанрам.
+        Получение статистики по жанрам с возможностью поиска.
         """
-        return Genre.objects.annotate(
+        queryset = Genre.objects.annotate(
             annotated_track_count=Count('artists__tracks', distinct=True),
             annotated_artist_count=Count('artists', distinct=True),
             total_playcount=Sum('artists__tracks__lastfm_playcount')
-        ).order_by('-total_playcount')[:limit]
+        )
+
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+
+        return queryset.order_by('-total_playcount')[:limit]
 
     @staticmethod
     def get_genre_with_details(pk: int):
