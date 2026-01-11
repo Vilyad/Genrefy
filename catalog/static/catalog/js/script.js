@@ -97,3 +97,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function initGenreSearch() {
+    const searchForm = document.querySelector('form[action*="genre_list"]');
+    const searchInput = searchForm?.querySelector('input[name="search"]');
+
+    if (!searchInput) return;
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function(e) {
+        clearTimeout(debounceTimer);
+
+        debounceTimer = setTimeout(() => {
+            const searchValue = e.target.value.trim();
+
+            if (searchValue.length >= 2 || searchValue.length === 0) {
+                const url = new URL(window.location);
+                if (searchValue) {
+                    url.searchParams.set('search', searchValue);
+                } else {
+                    url.searchParams.delete('search');
+                }
+
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.querySelector('.row').innerHTML;
+
+                    document.querySelector('.row').innerHTML = newContent;
+
+                    const countElement = document.querySelector('.text-muted strong');
+                    if (countElement) {
+                        const newCount = doc.querySelector('.text-muted strong')?.textContent || '0';
+                        countElement.textContent = newCount;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }, 500);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initGenreSearch);
