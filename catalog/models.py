@@ -3,8 +3,12 @@
 """
 import json
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 class Genre(models.Model):
@@ -373,3 +377,49 @@ class Favorite(models.Model):
         elif self.item_type == 'artist':
             return Artist.objects.filter(id=self.item_id).first()
         return None
+
+
+class UserProfile(models.Model):
+    """Расширенный профиль пользователя."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    bio = models.TextField(blank=True, null=True, max_length=500)
+    favorite_genres = models.ManyToManyField(Genre, blank=True)
+    lastfm_username = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Профиль: {self.user.username}"
+
+    @receiver(post_save, sender=User)
+    def create_user_profile(sender, instance, created, **kwargs):
+        if created:
+            UserProfile.objects.create(user=instance)
+
+    @receiver(post_save, sender=User)
+    def save_user_profile(sender, instance, **kwargs):
+        instance.profile.save()
+
+
+@receiver(post_save, sender=User)
+def send_welcome_email(sender, instance, created, **kwargs):
+    """Отправка приветственного письма после регистрации."""
+    if created and instance.email:
+        try:
+            send_mail(
+                subject='Добро пожаловать в Genrefy!',
+                message=f'Привет, {instance.username}!\n\n'
+                        f'Спасибо за регистрацию в Genrefy!\n'
+                        f'Теперь вы можете:\n'
+                        f'- Добавлять жанры в избранное\n'
+                        f'- Получать рекомендации\n'
+                        f'- Создавать свои коллекции\n\n'
+                        f'Начните исследовать музыку прямо сейчас!\n\n'
+                        f'С уважением,\nКоманда Genrefy',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[instance.email],
+                fail_silently=True,
+            )
+        except:
+            pass
