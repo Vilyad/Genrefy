@@ -2,20 +2,142 @@
 {% load static %}
 
 {% block content %}
-<h2>Каталог музыкальных жанров</h2>
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Каталог музыкальных жанров</h2>
+        <p class="text-muted">
+            Найдено жанров: <strong>{{ genres_count }}</strong>
+            {% if showing_favorites %}
+            <span class="ms-2 badge bg-danger">
+                <i class="fas fa-heart"></i> Только избранные
+            </span>
+            {% endif %}
+            {% if user_authenticated and total_favorites > 0 and not showing_favorites %}
+            <span class="ms-2 text-muted">
+                ({{ total_favorites }} в избранном)
+            </span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if user_authenticated %}
+        <a href="{% url 'catalog:my_favorites' %}" class="btn btn-outline-danger">
+            <i class="fas fa-heart"></i> Мои избранные ({{ total_favorites }})
+        </a>
+        {% else %}
+        <a href="{% url 'catalog:login' %}?next={{ request.path }}" class="btn btn-outline-secondary">
+            <i class="fas fa-sign-in-alt"></i> Войдите для избранного
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="{% url 'catalog:genre_list' %}" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text"
+                           class="form-control"
+                           name="search"
+                           placeholder="Поиск жанров..."
+                           value="{{ search_query|default:'' }}">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <select class="form-select" name="sort">
+                    <option value="popularity" {% if sort_by == 'popularity' %}selected{% endif %}>
+                        По популярности
+                    </option>
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>
+                        По названию
+                    </option>
+                    <option value="tracks" {% if sort_by == 'tracks' %}selected{% endif %}>
+                        По количеству треков
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <div class="d-flex gap-2">
+                    {% if user_authenticated %}
+                    <div class="form-check form-switch">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               id="favoritesOnly"
+                               name="favorites"
+                               value="true"
+                               {% if favorites_only %}checked{% endif %}
+                               onchange="this.form.submit()">
+                        <label class="form-check-label" for="favoritesOnly">
+                            Только избранные
+                        </label>
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Применить
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-3">
+            {% if search_query or favorites_only %}
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                {% if search_query %}
+                <span class="badge bg-info">
+                    Поиск: "{{ search_query }}"
+                    <a href="?{% if favorites_only %}favorites=true&amp;{% endif %}sort={{ sort_by }}"
+                       class="text-white ms-1">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </span>
+                {% endif %}
+
+                {% if favorites_only %}
+                <span class="badge bg-danger">
+                    <i class="fas fa-heart"></i> Только избранные
+                    <a href="?{% if search_query %}search={{ search_query }}&amp;{% endif %}sort={{ sort_by }}"
+                       class="text-white ms-1">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </span>
+                {% endif %}
+
+                <a href="{% url 'catalog:genre_list' %}" class="small">
+                    <i class="fas fa-redo"></i> Сбросить все фильтры
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if favorites_only and genres_count == 0 and user_authenticated %}
+<div class="alert alert-warning">
+    <i class="fas fa-heart-broken"></i>
+    У вас нет избранных жанров.
+    <a href="{% url 'catalog:genre_list' %}" class="alert-link">Показать все жанры</a>
+    или добавьте жанры в избранное, кликнув на иконку ♡.
+</div>
+{% endif %}
 
 {% if genres %}
 <div class="row">
     {% for genre in genres %}
     <div class="col-md-4 mb-3">
-        <div class="card genre-card"
+        <div class="card genre-card h-100"
              onclick="handleCardClick('{% url 'catalog:genre_detail' genre.id %}')"
              style="cursor: pointer; position: relative;">
 
             <span class="favorite-icon"
                   data-item-id="{{ genre.id }}"
                   data-item-type="genre"
-                  style="position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 1.5em; z-index: 10; padding: 5px;"
+                  style="position: absolute; top: 10px; right: 10px; cursor: pointer; font-size: 1.5em; z-index: 10; padding: 5px; background: rgba(255,255,255,0.8); border-radius: 50%;"
                   title="{{ genre.is_favorite|yesno:'Удалить из избранного,Добавить в избранное' }}">
                 {{ genre.is_favorite|yesno:'♥,♡' }}
             </span>
@@ -23,22 +145,59 @@
             <div class="card-body">
                 <h5 class="card-title">{{ genre.name }}</h5>
                 <p class="card-text">
-                    Артистов: {{ genre.display_artist_count|default:"0" }}<br>
-                    Треков: {{ genre.display_track_count|default:"0" }}
+                    <span class="badge bg-primary me-2">
+                        <i class="fas fa-music"></i> {{ genre.display_track_count }}
+                    </span>
+                    <span class="badge bg-secondary">
+                        <i class="fas fa-user"></i> {{ genre.display_artist_count }}
+                    </span>
                 </p>
-                <a href="{% url 'catalog:genre_detail' genre.id %}" class="btn btn-primary btn-sm">
-                    Подробнее
-                </a>
+                <div class="mt-2">
+                    <a href="{% url 'catalog:genre_detail' genre.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-info-circle"></i> Подробнее
+                    </a>
+                    {% if genre.lastfm_url %}
+                    <a href="{{ genre.lastfm_url }}" target="_blank" class="btn btn-sm btn-outline-dark ms-1">
+                        <i class="fab fa-lastfm"></i> Last.fm
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+
 {% else %}
 <div class="alert alert-info">
-    Жанров пока нет. <a href="{% url 'admin:catalog_genre_add' %}">Добавить жанр</a>
+    <i class="fas fa-info-circle"></i>
+    {% if search_query %}
+    По запросу "{{ search_query }}" жанров не найдено.
+    <a href="{% url 'catalog:genre_list' %}" class="alert-link">Показать все жанры</a>
+    {% else %}
+    Жанров пока нет. <a href="{% url 'admin:catalog_genre_add' %}" class="alert-link">Добавить жанр</a>
+    {% endif %}
 </div>
 {% endif %}
 
 <script src="{% static 'catalog/js/script.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                this.closest('form').submit();
+            }
+        });
+    }
+
+    const favoritesCheckbox = document.getElementById('favoritesOnly');
+    if (favoritesCheckbox && !{{ user_authenticated|yesno:"true,false" }}) {
+        favoritesCheckbox.disabled = true;
+        favoritesCheckbox.parentElement.title = "Войдите в систему для использования этой функции";
+    }
+});
+</script>
 {% endblock %}
