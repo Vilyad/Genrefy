@@ -1,0 +1,133 @@
+{% extends 'catalog/base.html' %}
+{% load static %}
+
+{% block title %}Регистрация - Genrefy{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'catalog:genre_list' %}">Главная</a></li>
+        <li class="breadcrumb-item active">Регистрация</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="fas fa-user-plus text-primary"></i> Регистрация
+                </h3>
+                
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">
+                            <i class="fas fa-user"></i> Имя пользователя
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.username.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Только буквы, цифры и @/./+/-/_.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.email.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_password1" class="form-label">
+                            <i class="fas fa-lock"></i> Пароль
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.password1.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">
+                            <ul class="small text-muted mb-0">
+                                <li>Пароль не должен быть слишком похож на другую вашу личную информацию.</li>
+                                <li>Пароль должен содержать как минимум 8 символов.</li>
+                                <li>Пароль не должен быть слишком простым и распространённым.</li>
+                                <li>Пароль не может состоять только из цифр.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="id_password2" class="form-label">
+                            <i class="fas fa-lock"></i> Подтверждение пароля
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.password2.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="form-text">Введите тот же пароль, что и выше, для проверки.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-user-plus"></i> Зарегистрироваться
+                        </button>
+                        <a href="{% url 'catalog:login' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt"></i> Уже есть аккаунт? Войти
+                        </a>
+                        <a href="{% url 'catalog:genre_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home"></i> На главную
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle"></i>
+            После регистрации вы автоматически войдёте в систему и сможете:
+            <ul class="mb-0 mt-1">
+                <li>Добавлять жанры, треки и исполнителей в избранное</li>
+                <li>Получать персональные рекомендации</li>
+                <li>Создавать свои музыкальные коллекции</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.invalid-feedback {
+    display: block !important;
+}
+</style>
+{% endblock %}

@@ -5,7 +5,9 @@ app_name = 'catalog'
 
 urlpatterns = [
     path('', views.genre_list, name='home'),
-
+    path('register/', views.register, name='register'),
+    path('login/', views.CustomLoginView.as_view(), name='login'),
+    path('logout/', views.logout_view, name='logout'),
     path('genres/', views.genre_list, name='genre_list'),
     path('genres/<int:pk>/', views.genre_detail, name='genre_detail'),
     path('search/', views.search_view, name='search'),

@@ -3,12 +3,63 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 
-from .forms import SearchForm, AddTrackFromLastFMForm, FavoriteForm, GenreAnalysisForm
+from .forms import SearchForm, AddTrackFromLastFMForm, FavoriteForm, GenreAnalysisForm, RegistrationForm
 from .models import Genre, Artist, Track, Favorite
 from .services import CatalogService, AnalyticsService
+
+
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
+
+
+class CustomLoginView(LoginView):
+    template_name = 'catalog/login.html'
+    redirect_authenticated_user = True
+    next_page = reverse_lazy('catalog:genre_list')
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Неверное имя пользователя или пароль. Попробуйте еще раз.')
+        return super().form_invalid(form)
+
+
+def register(request):
+    """Регистрация нового пользователя."""
+    if request.user.is_authenticated:
+        return redirect('catalog:genre_list')
+
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)  # Автоматически входим после регистрации
+            messages.success(request, f'Добро пожаловать, {user.username}! Регистрация успешна.')
+            return redirect('catalog:genre_list')
+    else:
+        form = RegistrationForm()
+
+    return render(request, 'catalog/register.html', {
+        'form': form,
+        'page_title': 'Регистрация'
+    })
+
+
+def logout_view(request):
+    """Выход пользователя."""
+    auth_logout(request)
+    return redirect('catalog:genre_list')
+
+
+@login_required
+def profile(request):
+    """Страница профиля пользователя."""
+    return render(request, 'catalog/profile.html', {
+        'page_title': f'Профиль {request.user.username}'
+    })
 
 
 @csrf_exempt
@@ -63,8 +114,12 @@ def toggle_favorite(request):
 
 
 def genre_list(request):
-    """Список жанров."""
-    genres = CatalogService.get_genre_statistics()
+    """Список жанров с поиском и фильтрацией."""
+    search_query = request.GET.get('search', '').strip()
+    sort_by = request.GET.get('sort', 'popularity')
+    favorites_only = request.GET.get('favorites', 'false') == 'true'
+
+    genres = CatalogService.get_genre_statistics(limit=100)
 
     favorite_genres_ids = []
     if request.user.is_authenticated:
@@ -73,13 +128,46 @@ def genre_list(request):
             item_type='genre'
         ).values_list('item_id', flat=True)
 
+    if favorites_only and request.user.is_authenticated:
+        genres = [genre for genre in genres if str(genre.id) in favorite_genres_ids]
+
+    if search_query:
+        genres = [genre for genre in genres
+                  if search_query.lower() in genre.name.lower()]
+
+    try:
+        if sort_by == 'name':
+            genres = sorted(genres, key=lambda x: x.name.lower() if x.name else '')
+        elif sort_by == 'tracks':
+            genres = sorted(genres,
+                            key=lambda x: getattr(x, 'display_track_count', 0) or 0,
+                            reverse=True)
+        else:
+            genres = sorted(genres,
+                            key=lambda x: getattr(x, 'total_playcount', 0) or 0,
+                            reverse=True)
+    except TypeError as e:
+        print(f"Sorting error: {e}")
+        genres = sorted(genres, key=lambda x: x.name.lower() if x.name else '')
+
     for genre in genres:
-        genre.display_track_count = getattr(genre, 'annotated_track_count', 0)
-        genre.display_artist_count = getattr(genre, 'annotated_artist_count', 0)
+        genre.display_track_count = getattr(genre, 'annotated_track_count', 0) or 0
+        genre.display_artist_count = getattr(genre, 'annotated_artist_count', 0) or 0
+        genre.total_playcount = getattr(genre, 'total_playcount', 0) or 0
         genre.is_favorite = str(genre.id) in favorite_genres_ids
+
+    total_favorites = len(favorite_genres_ids) if request.user.is_authenticated else 0
+    showing_favorites = favorites_only and request.user.is_authenticated
 
     return render(request, 'catalog/genre_list.html', {
         'genres': genres,
+        'search_query': search_query,
+        'sort_by': sort_by,
+        'favorites_only': favorites_only,
+        'genres_count': len(genres),
+        'total_favorites': total_favorites,
+        'showing_favorites': showing_favorites,
+        'user_authenticated': request.user.is_authenticated,
         'page_title': 'Каталог музыкальных жанров'
     })
 
