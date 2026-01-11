@@ -1,0 +1,1 @@
+web: gunicorn genrefy_project.wsgi:application
