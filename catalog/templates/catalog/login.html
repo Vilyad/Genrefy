@@ -1,0 +1,61 @@
+{% extends 'catalog/base.html' %}
+
+{% block title %}Вход - Genrefy{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="fas fa-sign-in-alt text-primary"></i> Вход в Genrefy
+                </h3>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        Неверное имя пользователя или пароль.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Имя пользователя</label>
+                        <input type="text" name="username" class="form-control" 
+                               id="id_username" required autofocus>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">Пароль</label>
+                        <input type="password" name="password" class="form-control" 
+                               id="id_password" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Войти
+                        </button>
+                        <a href="{% url 'catalog:register' %}" class="btn btn-outline-success">
+                            <i class="fas fa-user-plus"></i> Зарегистрироваться
+                        </a>
+                        <a href="{% url 'catalog:genre_list' %}" class="btn btn-outline-secondary">
+                            На главную
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle"></i>
+            После входа вы сможете:
+            <ul class="mb-0 mt-2">
+                <li>Добавлять жанры и треки в избранное</li>
+                <li>Получать персональные рекомендации</li>
+                <li>Создавать свои музыкальные коллекции</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

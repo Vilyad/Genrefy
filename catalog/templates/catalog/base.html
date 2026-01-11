@@ -52,22 +52,69 @@
 
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        {% if user.is_superuser or user.is_staff %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-shield"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'catalog:my_favorites' %}">
+                                    <i class="fas fa-heart"></i> Моё избранное
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/admin/" target="_blank">
+                                    <i class="fas fa-cog"></i> Админ-панель
+                                </a></li>
+                                <li><a class="dropdown-item" href="/admin/catalog/" target="_blank">
+                                    <i class="fas fa-music"></i> Управление каталогом
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'catalog:logout' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'catalog:genre_list' %}">
+                                        <button type="submit" class="dropdown-item" style="background: none; border: none; width: 100%; text-align: left;">
+                                            <i class="fas fa-sign-out-alt"></i> Выйти
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                        {% else %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'catalog:my_favorites' %}">
+                                    <i class="fas fa-heart"></i> Моё избранное
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'catalog:logout' %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'catalog:genre_list' %}">
+                                        <button type="submit" class="dropdown-item" style="background: none; border: none; width: 100%; text-align: left;">
+                                            <i class="fas fa-sign-out-alt"></i> Выйти
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                        {% endif %}
+                    {% else %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user"></i> {{ user.username }}
+                            <i class="fas fa-user"></i> Аккаунт
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'catalog:my_favorites' %}">Мое избранное</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/admin/" target="_blank">Админка</a></li>
-                            <li><a class="dropdown-item" href="{% url 'admin:logout' %}">Выйти</a></li>
+                            <li><a class="dropdown-item" href="{% url 'catalog:login' %}">
+                                <i class="fas fa-sign-in-alt"></i> Войти
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'catalog:register' %}">
+                                <i class="fas fa-user-plus"></i> Зарегистрироваться
+                            </a></li>
                         </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'admin:login' %}?next={{ request.path }}">
-                            <i class="fas fa-sign-in-alt"></i> Войти
-                        </a>
                     </li>
                     {% endif %}
                 </ul>
