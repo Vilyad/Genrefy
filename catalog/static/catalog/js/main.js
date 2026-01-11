@@ -69,8 +69,10 @@
 
                 card.addEventListener('click', (e) => {
                     if (!e.target.closest('a')) {
-                        this.toggleCardFavorite(card);
+                        return;
                     }
+
+                    this.trackCardClick(card);
                 });
             });
         }
