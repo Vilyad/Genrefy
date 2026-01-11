@@ -35,42 +35,27 @@ class SearchForm(forms.Form):
 
 
 class AddTrackFromLastFMForm(forms.Form):
-    """
-    Форма для добавления трека из Last.fm в базу данных
-    """
     track_name = forms.CharField(
         label='Название трека',
         max_length=200,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Введите название трека...'
-        })
+        widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-
     artist_name = forms.CharField(
         label='Исполнитель',
         max_length=200,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Введите имя исполнителя...'
-        })
+        widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-
     genre = forms.ModelChoiceField(
-        label='Жанр',
         queryset=Genre.objects.all(),
+        label='Основной жанр (опционально)',
         required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
-
     tags = forms.CharField(
-        label='Теги (через запятую)',
-        max_length=200,
+        label='Теги через запятую (опционально)',
+        max_length=500,
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'rock, alternative, indie...'
-        })
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'rock, alternative, indie'})
     )
 
     def clean(self):
@@ -78,11 +63,11 @@ class AddTrackFromLastFMForm(forms.Form):
         track_name = cleaned_data.get('track_name')
         artist_name = cleaned_data.get('artist_name')
 
-        if not track_name or not artist_name:
-            raise forms.ValidationError("Введите название трека и исполнителя")
-
-        if Track.objects.filter(name=track_name, artist__name=artist_name).exists():
-            raise forms.ValidationError("Этот трек уже есть в базе данных")
+        if track_name and artist_name:
+            if Track.objects.filter(title__iexact=track_name, artist__name__iexact=artist_name).exists():
+                raise forms.ValidationError(
+                    f'Трек "{track_name}" исполнителя "{artist_name}" уже существует в базе.'
+                )
 
         return cleaned_data
 
