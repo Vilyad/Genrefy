@@ -4,6 +4,7 @@
     class GenrefyApp {
         constructor() {
             this.debug = true;
+            this.lastfmRed = '#db221b';
             this.init();
         }
 
@@ -83,7 +84,7 @@
                 right: 10px;
                 width: 8px;
                 height: 8px;
-                background: #667eea;
+                background: ${this.lastfmRed};
                 border-radius: 50%;
                 opacity: 0.7;
             `;
@@ -103,7 +104,7 @@
             const isFavorite = card.classList.contains('favorite');
 
             if (isFavorite) {
-                card.style.borderLeft = '4px solid #667eea';
+                card.style.borderLeft = `4px solid ${this.lastfmRed}`;
                 this.showToast('Добавлено в избранное');
             } else {
                 card.style.borderLeft = '';
@@ -135,7 +136,7 @@
                             left: 0;
                             right: 0;
                             height: 2px;
-                            background: #667eea;
+                            background: ${this.lastfmRed};
                             border-radius: 2px;
                         `;
                         link.style.position = 'relative';
@@ -205,7 +206,7 @@
                 position: fixed;
                 bottom: 20px;
                 right: 20px;
-                background: #667eea;
+                background: ${this.lastfmRed};
                 color: white;
                 padding: 12px 20px;
                 border-radius: 8px;
@@ -267,7 +268,7 @@
                         const card = document.querySelector(`[data-card-id="${id}"]`);
                         if (card) {
                             card.classList.add('favorite');
-                            card.style.borderLeft = '4px solid #667eea';
+                            card.style.borderLeft = `4px solid ${this.lastfmRed}`;
                         }
                     });
                     this.log('Загружено состояние', { favorites });
