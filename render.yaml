@@ -7,7 +7,7 @@ services:
     startCommand: "gunicorn genrefy_project.wsgi:application"
     envVars:
       - key: DATABASE_URL
-        value: "postgresql://vilyad:450Y2byBqTLtMNjyFDmdxnaMlwlxZGqk@dpg-d5ib91ogjchc73amfso0-a.frankfurt-postgres.render.com/genrefydb"
+        value: "postgresql://vilyad:450Y2byBqTLtMNjyFDmdxnaMlwlxZGqk@dpg-d5ib91ogjchc73amfso0-a/genrefydb"
       - key: SECRET_KEY
         generateValue: true
       - key: RENDER
