@@ -1,20 +1,19 @@
 import json
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
+
 from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse_lazy
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from .forms import SearchForm, AddTrackFromLastFMForm, FavoriteForm, GenreAnalysisForm, RegistrationForm
 from .models import Genre, Artist, Track, Favorite
 from .services import CatalogService, AnalyticsService
-
-
-from django.contrib.auth.views import LoginView
-from django.urls import reverse_lazy
 
 
 class CustomLoginView(LoginView):
@@ -36,7 +35,7 @@ def register(request):
         form = RegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            auth_login(request, user)  # Автоматически входим после регистрации
+            auth_login(request, user)
             messages.success(request, f'Добро пожаловать, {user.username}! Регистрация успешна.')
             return redirect('catalog:genre_list')
     else:
@@ -335,7 +334,17 @@ def my_favorites(request):
         item_type='genre'
     ).values_list('item_id', flat=True)
 
-    favorite_genres = Genre.objects.filter(id__in=favorite_genres_ids)
+    genre_ids = []
+    for item_id in favorite_genres_ids:
+        try:
+            genre_ids.append(int(item_id))
+        except (ValueError, TypeError):
+            continue
+
+    if not genre_ids:
+        favorite_genres = Genre.objects.none()
+    else:
+        favorite_genres = Genre.objects.filter(id__in=genre_ids)
 
     recommendations = {
         'artists': Artist.objects.filter(genres__in=favorite_genres).distinct()[:4],
