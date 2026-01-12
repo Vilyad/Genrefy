@@ -175,7 +175,7 @@
     По запросу "{{ search_query }}" жанров не найдено.
     <a href="{% url 'catalog:genre_list' %}" class="alert-link">Показать все жанры</a>
     {% else %}
-    Жанров пока нет. <a href="{% url 'admin:catalog_genre_add' %}" class="alert-link">Добавить жанр</a>
+    Жанров пока нет. Добавляйте жанры через поиск</a>
     {% endif %}
 </div>
 {% endif %}
